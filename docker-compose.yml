@@ -1,0 +1,52 @@
+version: '3.0'
+
+services:
+
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - network
+
+  movies:
+    container_name: movies
+    build:
+      context: movies
+    env_file:
+      - movies/.env
+    volumes:
+      - ./movies:/app
+      - /app/node_modules
+    ports:
+      - 3000:3000
+      - 9229:9229
+    networks:
+      - network
+    command: npm run start:dev
+
+    restart: always
+
+  postgres:
+    container_name: postgres
+    image: postgres:12
+    env_file:
+      - ./movies/.env
+    environment:
+      PG_DATA: /var/lib/postgresql/12/main
+    ports:
+      - 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/12/main
+    networks:
+      - network
+    restart: always
+
+networks:
+    # Declare our private network.  We must declare one for the magic
+    # Dockerfile DNS to work, but otherwise its default settings are fine.
+  network: {}
+
+volumes:
+   pgdata:
