@@ -9,26 +9,29 @@ import { GetMovieDto } from "./dto/getMovie.dto";
 // import { PERSONS_SERVICE } from "./constants/services";
 import { ClientProxy } from "@nestjs/microservices";
 import { lastValueFrom } from "rxjs";
+import { MovieFilterDto } from "./dto/movie-filter.dto";
 
 @Injectable()
 export class MoviesService {
   constructor(
-    @Inject('GENRES') private genresClient: ClientProxy,
-
-    @Inject('PERSONS') private personsClient: ClientProxy,
-    @Inject('AUTH') private authClient: ClientProxy,
+    @Inject("GENRES") private genresClient: ClientProxy,
+    @Inject("PERSONS") private personsClient: ClientProxy,
+    @Inject("AUTH") private authClient: ClientProxy,
     @InjectRepository(Movie)
     private moviesRepository: Repository<Movie>
   ) {
   }
 
 
-  async getMovies(dto) {
+  async getMovies(dto: MovieFilterDto): Promise<({ result: Movie[], amount: number })> {
     let order;
     let orderDirection;
     let pagination = [0, 3];
-    let countries = [{ name: "Япония" }, { name: "Франция" }, { name: "Россия" }];
-    let years = [2000];
+    let countryMap = new Map([["jp", "Япония"], ["fr", "Франция"], ["ru", "Россия"]]);
+    let sortMap = new Map([["new", "CreatedAt"],
+      ["imdb", "rating.imdb"],
+      ["boxoffice", ""]]);
+    let years = ["2000-2020"];
     let rating = 8;
     let ids = [];
     let partName = "е";
@@ -39,15 +42,15 @@ export class MoviesService {
 
     let getGenres = [341];
     let movies = await this.moviesRepository.createQueryBuilder();
-    if (getGenres) {
+    if (!getGenres) {
       movies.andWhere(`id in (:...genres)`, { genres: getGenres });
 
     }
-    if (ids) {//тестовый фильтр, в продакшене не нужен, удалить
+    if (!ids) {//тестовый фильтр, в продакшене не нужен, удалить
       movies.andWhere(`id in (:...ids)`, { ids: ids });
     }
 
-    if (rating) {
+    if (dto.rating) {
       movies.andWhere("\"rating.kp\" >= :rating", { rating: rating });
     }
 
@@ -55,20 +58,28 @@ export class MoviesService {
       movies.andWhere("name like :name", { name: "%" + partName + "%" });
     }
 
-    if (years) {
+    if (dto.year) {
+      let years = dto.year.split("-");
       movies.andWhere("year >= :start", { start: years[0] });
       if (years[1]) {
         movies.andWhere("year <= :end", { end: years[1] });
       }
     }
 
-    if (countries) {
+    if (dto.country) {
+      let temp = dto.country.split(" ");
+      let countries = [];
+      temp.forEach(c =>
+        countries.push({ name: countryMap.get(c) })
+      );
+      console.log(countries);
       movies.andWhere("countries&&:c", { c: (countries) });
     }
 
     const totalAmountOfFilms = (await movies.getMany()).length;
 
-    if (!order) order = "name";
+    order = sortMap[dto.sort] || "id";
+
     if (!orderDirection) orderDirection = "ASC";
 
     movies.take(pagination[1]);
@@ -103,7 +114,7 @@ export class MoviesService {
       value.persons = personsForResult[value.id];
     });
 
-    return [result.map(movie => [movie.name/*, movie.id, movie.countries*/]), totalAmountOfFilms];
+    return { result: result, "amount": totalAmountOfFilms };//[result.map(movie => [movie.name/*, movie.id, movie.countries*/]), totalAmountOfFilms];
   }
 
   async createMovie(dto: MovieDto, headers) {
@@ -126,14 +137,14 @@ export class MoviesService {
     return movie;
   }
 
-  async getMovieById(id) {
+  async getMovieById(id: number): Promise<Movie> {
     let movie = await this.moviesRepository.findOne({ where: { id: id } });
     let genre = await lastValueFrom(this.genresClient.send("get_genre", { data: movie.id }));
     movie.genres = genre;
     return movie;
   }
 
-  async deleteMovie(id, headers) {
+  async deleteMovie(id: number, headers) {
 
     /*  const isAdmin = lastValueFrom(await this.authClient.send("is_admin", headers));
       if (!isAdmin.status) {
@@ -146,11 +157,11 @@ export class MoviesService {
     return await this.moviesRepository
       .createQueryBuilder()
       .delete()
-      .where("id=:id", { id: id.id })
+      .where("id=:id", { id: id })
       .execute();
   }
 
-  async editMovie(dto, headers) {
+  async editMovie(dto: MovieDto, headers)/*:Promise<Movie>*/ {
 
     /*  const isAdmin = lastValueFrom(await this.authClient.send("is_admin", headers));
       if (!isAdmin.status) {
@@ -159,6 +170,61 @@ export class MoviesService {
           message: isAdmin.message
         };
       }*/ //включить, когда будет МС авторизации
-    return Promise.resolve(undefined);
+
+
+    let edit = await this.moviesRepository
+      .createQueryBuilder()
+      .update()
+      .set({
+        "backdrop.previewUrl": dto.backdropPreviewUrl,
+        "backdrop.url": dto.backdropUrl,
+        "externalId.imdb": dto.externalIdKpHD,
+        "externalId.kpHD": dto.externalIdKpHD,
+        "logo.url": dto.logoUrl,
+        "poster.previewUrl": dto.posterPreviewUrl,
+        "poster.url": dto.posterUrl,
+        "premiere.country": dto.premiereCountry,
+        "premiere.world": dto.premiereWorld,
+        "rating.await": dto.ratingAwait,
+        "rating.filmCritics": dto.ratingFilmCritics,
+        "rating.imdb": dto.ratingImdb,
+        "rating.kp": dto.ratingKp,
+        "rating.russianFilmCritics": dto.ratingRussianFilmCritics,
+        "videos.teasers": dto.videosTeasers,
+        "videos.trailers": dto["videos.trailers"],
+        "votes.await": dto.votesAwait,
+        "votes.filmCritics": dto.votesFilmCritics,
+        "votes.imdb": dto.votesImdb,
+        "votes.kp": dto.votesKp,
+        "votes.russianFilmCritics": dto.votesRussianFilmCritics,
+        "watchability.items": dto.watchabilityItems,
+        ageRating: dto.ageRating,
+        alternativeName: dto.alternativeName,
+        countries: dto.countries,
+        description: dto.description,
+        enName: dto.enName,
+        facts: dto.facts,
+        genres: dto.genres,
+        id: dto.id,
+        movieLength: dto.movieLength,
+        name: dto.name,
+        names: dto.names,
+        persons: dto.persons,
+        productionCompanies: dto.productionCompanies,
+        ratingMpaa: dto.ratingMpaa,
+        seasonsInfo: dto.seasonsInfo,
+        sequelsAndPrequels: dto.sequelsAndPrequels,
+        shortDescription: dto.shortDescription,
+        similarMovies: dto.similarMovies,
+        slogan: dto.slogan,
+        status: dto.status,
+        top10: dto.top10,
+        top250: dto.top250,
+        type: dto.type,
+        typeNumber: dto.typeNumber,
+        year: dto.year
+    })
+    edit.where("id=:id", { id: dto.id });
+    return await edit.execute();
   }
 }

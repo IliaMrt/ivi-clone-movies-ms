@@ -14,7 +14,6 @@ import { ClientsModule, Transport } from "@nestjs/microservices";
       envFilePath: ".env"
     }),
     // RmqModule,
-
     ClientsModule.register([
       {
         name: "PERSONS",

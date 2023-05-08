@@ -5,43 +5,40 @@ import { MoviesService } from "./movies.service";
 import { MovieDto } from "./dto/movie.dto";
 import { GetMovieDto } from "./dto/getMovie.dto";
 import { AUTH_SERVICE } from "./constants/services";
+import { MovieFilterDto } from "./dto/movie-filter.dto";
 
 @Controller()
 export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {
   }
 
-  @MessagePattern("get_movies")
-  async getMovies(
-    @Payload() data /*: { dto: GetMovieDto }*/
-  ) /*: Promise<Movie[]>*/ {
-    const a = await this.moviesService.getMovies(data /*data.dto*/);
-    return a;
+  @EventPattern({ cmd: "getMovies" })
+  async getMovies(data /*: { dto: MovieFilterDto }*/): Promise<{ "result": Movie[], "amount": number }> {
+
+    return await this.moviesService.getMovies(data);
   }
 
 
-  @MessagePattern("delete_movie")
+  @MessagePattern({ cmd: "deleteMovie" })
   async deleteMovie(id, headers/*: { dto: GetMovieDto }*/
   ) /*: Promise<Movie[]>*/ {
     return await this.moviesService.deleteMovie(id, headers);
   }
 
-  @MessagePattern("edit_movie")
+  @MessagePattern({ cmd: "editMovie" })
   async editMovie(
     @Payload() dto: MovieDto, headers) {
-    return await this.moviesService.editMovie(dto,headers);
+    return await this.moviesService.editMovie(dto, headers);
   }
 
-  @MessagePattern("create_movie")
+  @MessagePattern({ cmd: "createMovie" })
   async createMovie(
     @Payload() dto: MovieDto, headers) /*: Promise<Movie[]>*/ {
-    return await this.moviesService.createMovie(dto,headers);
+    return await this.moviesService.createMovie(dto, headers);
   }
 
-  @MessagePattern("get_movie_by_id")
-  async getMovie(
-    @Payload() id /*: { dto: GetMovieDto }*/
-  ) /*: Promise<Movie[]>*/ {
+  @MessagePattern({ cmd: "getMovieById" })
+  async getMovie(id: number): Promise<Movie> {
     return await this.moviesService.getMovieById(id);
   }
 
