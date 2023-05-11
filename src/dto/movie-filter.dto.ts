@@ -7,4 +7,5 @@ export class MovieFilterDto {
   readonly director: string;
   readonly actor: string;
   readonly sort: string;
+  pagination: number[];
 }

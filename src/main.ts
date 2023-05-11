@@ -1,23 +1,28 @@
-import { NestFactory } from "@nestjs/core";
-import { MoviesModule } from "./movies.module";
-import { Transport } from "@nestjs/microservices";
+import { NestFactory } from '@nestjs/core';
+import { MoviesModule } from './movies.module';
+import { Transport } from '@nestjs/microservices';
+import { databaseHost, port, rmqUrl } from './environment/variables';
 
 async function bootstrap() {
-  console.log("starting");
-  const msApp = await NestFactory.createMicroservice(MoviesModule, {
+  const app = await NestFactory.create(MoviesModule);
+  const microservice = app.connectMicroservice({
     transport: Transport.RMQ,
     options: {
-      urls: ["amqp://rabbitmq:5672"],
-      queue: "ToMoviesMs",
+      urls: [rmqUrl],
+      queue: 'toMoviesMs',
       queueOptions: {
-        durable: true
-      }
-    }
+        durable: false,
+      },
+    },
   });
-  console.log("listening started");
 
-  await msApp.listen();
+  await app.startAllMicroservices();
+  await app.listen(port, () => {
+    console.log(`Genres MS started on ${port}.`);
+    console.log(`Application variables:`);
+    console.log(`RabbitMQ address: ${rmqUrl}`);
+    console.log(`Database host: ${databaseHost}`);
+  });
 }
-
 
 bootstrap();
