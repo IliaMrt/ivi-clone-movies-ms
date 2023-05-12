@@ -1,66 +1,73 @@
-import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { MoviesController } from "./movies.controller";
-import { Movie } from "./movies.entity";
-import { MoviesService } from "./movies.service";
-import { ClientsModule, Transport } from "@nestjs/microservices";
-
+import { Module } from '@nestjs/common';
+// import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MoviesController } from './movies.controller';
+import { Movie } from './movies.entity';
+import { MoviesService } from './movies.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import {
+  databaseHost,
+  databaseName,
+  databasePassword,
+  databasePort,
+  databaseUser,
+} from './environment/variables';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ".env"
-    }),
+    // ConfigModule.forRoot({
+    //   isGlobal: true,
+    //   envFilePath: ".env"
+    // }),
     // RmqModule,
     ClientsModule.register([
       {
-        name: "PERSONS",
+        name: 'PERSONS',
         transport: Transport.RMQ,
         options: {
           urls: [process.env.RABBIT_MQ_URL],
-          queue: "PERSONS",
+          queue: 'PERSONS',
           queueOptions: {
-            durable: false
-          }
-        }
+            durable: false,
+          },
+        },
       },
       {
-        name: "AUTH",
+        name: 'AUTH',
         transport: Transport.RMQ,
         options: {
           urls: [process.env.RABBIT_MQ_URL],
-          queue: "AUTh",
+          queue: 'AUTh',
           queueOptions: {
-            durable: false
-          }
-        }
-      }, {
-        name: "GENRES",
+            durable: false,
+          },
+        },
+      },
+      {
+        name: 'GENRES',
         transport: Transport.RMQ,
         options: {
           urls: [process.env.RABBIT_MQ_URL],
-          queue: "GENRES",
+          queue: 'GENRES',
           queueOptions: {
-            durable: false
-          }
-        }
-      }]),
+            durable: false,
+          },
+        },
+      },
+    ]),
     TypeOrmModule.forRoot({
-      type: "postgres",
-      host: process.env.POSTGRES_HOST,
-      port: Number(process.env.POSTGRES_PORT),
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD.toString(),
-      database: process.env.POSTGRES_DB,
+      type: 'postgres',
+      host: databaseHost,
+      port: Number(databasePort),
+      username: databaseUser,
+      password: databasePassword.toString(),
+      database: databaseName,
       entities: [Movie],
-      synchronize: false
+      synchronize: false,
     }),
-    TypeOrmModule.forFeature([Movie])
+    TypeOrmModule.forFeature([Movie]),
   ],
   controllers: [MoviesController],
-  providers: [MoviesService]
+  providers: [MoviesService],
 })
-export class MoviesModule {
-}
+export class MoviesModule {}

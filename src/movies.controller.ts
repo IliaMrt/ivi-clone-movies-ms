@@ -2,8 +2,9 @@ import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern } from '@nestjs/microservices';
 import { Movie } from './movies.entity';
 import { MoviesService } from './movies.service';
-import { MovieDto } from './dto/movie.dto';
 import { MovieFilterDto } from './dto/movie-filter.dto';
+import { FullMovieDto } from "./dto/full.movie.dto";
+import { MiniMovieDto } from "./dto/mini-movie.dto";
 
 @Controller()
 export class MoviesController {
@@ -12,7 +13,8 @@ export class MoviesController {
   @EventPattern({ cmd: 'getMovies' })
   async getMovies(
     dto: MovieFilterDto,
-  ): Promise<{ result: Movie[]; amount: number }> {
+  ): Promise<{ result: MiniMovieDto[]; amount: number }> {
+    console.log('Movies MS - Controller - getMovies at', new Date());
     return await this.moviesService.getMovies(dto);
   }
 
@@ -23,19 +25,19 @@ export class MoviesController {
   }
 
   @MessagePattern({ cmd: 'editMovie' })
-  async editMovie(dto: MovieDto) {
+  async editMovie(dto: FullMovieDto) {
     console.log('Movies MS - Controller - editMovie at', new Date());
     return await this.moviesService.editMovie(dto);
   }
 
   @MessagePattern({ cmd: 'createMovie' })
-  async createMovie(dto: MovieDto): Promise<Movie> {
+  async createMovie(dto: FullMovieDto): Promise<Movie> {
     console.log('Movies MS - Controller - deleteMovie at', new Date());
     return await this.moviesService.createMovie(dto);
   }
 
   @MessagePattern({ cmd: 'getMovieById' })
-  async getMovieById(id: number): Promise<Movie> {
+  async getMovieById(id: number): Promise<FullMovieDto> {
     console.log('Movies MS - Controller - getMovieById at', new Date());
     return await this.moviesService.getMovieById(id);
   }

@@ -1,18 +1,14 @@
 import { MiniMovieDto } from "./mini-movie.dto";
 import { PersonsDto } from "./persons.dto";
-import { CountryDto } from "./country.dto";
-import { GenresDto } from "./genres.dto";
 
-export class ShortMovieDto {
-
-
+export class FullMovieDto {
   id: number;
   nameRu: string;
   nameEn: string;
   type: string;
   description: string;
-  country: CountryDto[];
-  // genres: GenresDto[];
+  country: [];
+  genres: [];
   trailer: string;
   similarMovies: number[];
   year: number;
@@ -22,4 +18,10 @@ export class ShortMovieDto {
   poster: string;
   duration: number;
   slogan: string;
+  director: PersonsDto[];
+  actors: PersonsDto[];
+  producer: PersonsDto[];
+  cinematographer: PersonsDto[];
+  screenwriter: PersonsDto[];
+  composer: PersonsDto[];
 }

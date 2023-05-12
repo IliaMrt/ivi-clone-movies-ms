@@ -2,14 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Movie } from './movies.entity';
-import { MovieDto } from './dto/movie.dto';
-import { GetMovieDto } from './dto/getMovie.dto';
+import { FullMovieDto } from './dto/full.movie.dto';
+// import { GetMovieDto } from './dto/getMovie.dto';
 // import { AUTH_SERVICE, GENRES_SERVICE } from "./constants/services";
 // import { COMMENTS_SERVICE } from "./constants/services";
 // import { PERSONS_SERVICE } from "./constants/services";
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { MovieFilterDto } from './dto/movie-filter.dto';
+import { MiniMovieDto } from './dto/mini-movie.dto';
+// import { PersonsDto } from './dto/persons.dto';
+import { CountriesList } from './constants/countries.list';
+
+// import { GenresDto } from './dto/genres.dto';
 
 @Injectable()
 export class MoviesService {
@@ -23,43 +28,81 @@ export class MoviesService {
 
   async getMovies(
     dto: MovieFilterDto,
-  ): Promise<{ result: Movie[]; amount: number }> {
+  ): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Service - getMovies at', new Date());
     let orderDirection;
-    const countryMap = new Map([
-      ['jp', 'Япония'],
-      ['fr', 'Франция'],
-      ['ru', 'Россия'],
-    ]);
     const sortMap = new Map([
-      ['new', 'CreatedAt'],
-      ['imdb', 'rating.imdb'],
-      ['boxoffice', ''],
+      ['name', 'nameRu'],
+      ['rating', 'rating'],
+      ['ratingCount', 'ratingCount'],
     ]);
-    const years = ['2000-2020'];
-    const rating = 8;
-    const ids = [];
-    const partName = 'е';
-    for (let i = 0; i < 600; i++) {
-      ids.push(i);
+    // const years = ['2000-2020'];
+    // const rating = 8;
+    let ids: number[];
+    // const partName = 'е';
+    // for (let i = 0; i < 600; i++) {
+    //   ids.push(i);
+    // }
+    let rawGenresPersonsArray: number[][];
+    const movies = await this.moviesRepository.createQueryBuilder();
+    /*
+        if (!getGenres) {
+          movies.andWhere(`id in (:...genres)`, { genres: getGenres });
+        }
+    */
+
+    if (dto.genre) {
+      rawGenresPersonsArray.push(
+        await lastValueFrom(
+          this.genresClient.send({ cmd: 'getIdsByGenres' }, dto.genre),
+        ),
+      );
     }
 
-    const getGenres = [341];
-    const movies = await this.moviesRepository.createQueryBuilder();
-    if (!getGenres) {
-      movies.andWhere(`id in (:...genres)`, { genres: getGenres });
+    if (dto.director) {
+      rawGenresPersonsArray.push(
+        await lastValueFrom(
+          this.personsClient.send({ cmd: 'getIdsByDirector' }, dto.director),
+        ),
+      );
     }
-    if (!ids) {
-      //тестовый фильтр, в продакшене не нужен, удалить
+
+    if (dto.actor) {
+      rawGenresPersonsArray.push(
+        await lastValueFrom(
+          this.personsClient.send({ cmd: 'getIdsByActor' }, dto.actor),
+        ),
+      );
+    }
+
+    // пересекаем полученные массивы, получаем перечень id, по которым надо фильтровать
+    if (rawGenresPersonsArray.length == 1) {
+      ids = rawGenresPersonsArray[0];
+    } else if (rawGenresPersonsArray.length > 1) {
+      ids = rawGenresPersonsArray[0].filter((v) =>
+        rawGenresPersonsArray[1].includes(v),
+      );
+      if (rawGenresPersonsArray.length == 3) {
+        ids = rawGenresPersonsArray[2].filter((v) => ids.includes(v));
+      }
+    }
+
+    if (ids) {
       movies.andWhere(`id in (:...ids)`, { ids: ids });
     }
 
     if (dto.rating) {
-      movies.andWhere('"rating.kp" >= :rating', { rating: rating });
+      movies.andWhere('"rating" >= :rating', { rating: dto.rating });
     }
 
-    if (partName) {
-      movies.andWhere('name like :name', { name: '%' + partName + '%' });
+    if (dto.ratingCount) {
+      movies.andWhere('"ratingCount" >= :ratingCount', {
+        ratingCount: dto.ratingCount,
+      });
+    }
+
+    if (dto.partName) {
+      movies.andWhere('name like :name', { name: '%' + dto.partName + '%' });
     }
 
     if (dto.year) {
@@ -71,83 +114,170 @@ export class MoviesService {
     }
 
     if (dto.country) {
-      const temp = dto.country.split(' ');
+      const temp = dto.country.split('+');
       const countries = [];
-      temp.forEach((c) => countries.push({ name: countryMap.get(c) }));
-      console.log(countries);
+      temp.forEach((c) =>
+        countries.push({ name: CountriesList.get(c).nameRu }),
+      );
       movies.andWhere('countries&&:c', { c: countries });
     }
 
-    const totalAmountOfFilms = (await movies.getMany()).length;
-
+    //если не пришёл порядок сортировки - сортируем по id
     const order = sortMap[dto.sort] || 'id';
 
+    //если не пришло направление сортировки - сортируем по возрастанию
     if (!orderDirection) orderDirection = 'ASC';
 
+    //если не пришла пагинация - выдаём первую страницу, 10 записей
     const pagination = dto.pagination.length > 0 ? dto.pagination : [0, 10];
 
-    movies.take(pagination[1]);
-    movies.skip(pagination[0] * pagination[1]);
-    movies.orderBy(order, orderDirection);
+    // выбираем поля, необходимые для формирования miniMovies
+    movies.select([
+      'id',
+      'nameRu',
+      'nameEn',
+      'poster',
+      'rating',
+      'startYear',
+      'country',
+      'duration',
+    ]);
+    /* movies.take(pagination[1]);
+     movies.skip(pagination[0] * pagination[1]);
+     movies.orderBy(order, orderDirection);*/
 
-    const result = await movies.getMany();
+    //получаем полный результат для того, чтобы получить количество записей
+    const rawListOfMovies: Movie[] = await movies.getMany();
 
+    //получаем общее количество записей
+    const amountOfMovies = rawListOfMovies.length;
+
+    //формируем результирующий массив с учётом пагинации, но без жанров и персон
+    const rawResult: Movie[] = rawListOfMovies.slice(
+      pagination[0] * pagination[1],
+      pagination[0] * pagination[1] + pagination[1] + 1,
+    );
+    //------------------------------тут надо проверить пагинацию на граничные значения
+
+    //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
+    let result: MiniMovieDto[];
+    rawResult.forEach((movie) => {
+      let tempMovie: MiniMovieDto;
+      for (const tempMovieKey in tempMovie) {
+        tempMovie[tempMovieKey] = movie[tempMovieKey];
+      }
+    });
+
+    // извлекаем id результата для использования ниже
     const resultIds = result.map((movie) => movie.id);
 
-    // let genresForResult:any = lastValueFrom(await this.genresClient
-    //   .send("get_genres_by_ids", resultIds));
+    // запрашиваем жанры для обогащения нашей поисковой выдачи
+    const genresMap = new Map(
+      await lastValueFrom(this.genresClient.send('getGenresByIds', resultIds)),
+    );
+
+    // запрашиваем персон для обогащения нашей поисковой выдачи
+    const directorMap = new Map(
+      await lastValueFrom(
+        this.personsClient.send('getDirectorByIds', resultIds),
+      ),
+    );
+
+    const actorMap = new Map(
+      await lastValueFrom(
+        this.personsClient.send('getDirectorByIds', resultIds),
+      ),
+    );
 
     // let personsForResult = await this.personsClient
     //   .send("get_persons_by_ids",resultIds);
+    /*
+    
+        const genresForResult = {
+          300: ['Драма', 'Хентай'],
+          301: ['Комедия'],
+          341: ['Аниме '],
+        }; //для отладки, удалить и ниже - тоже!
+    */
 
-    const genresForResult = {
-      300: ['Драма', 'Хентай'],
-      301: ['Комедия'],
-      341: ['Аниме '],
-    }; //для отладки, удалить и ниже - тоже!
-
-    const personsForResult = {
+    /* const personsForResult = {
       300: {
         '{"id":6915,"photo":"https://st.kp.yandex.net/images/actor_iphone/iphone360_6915.jpg","name":"Сигурни Уивер","enName":"Sigourney Weaver","profession":"актеры","enProfession":"actor"}':
           's',
       },
       341: { actors: 'Всякие актёры' },
     };
-
-    result.forEach((value) => {
+*/
+ /*   result.forEach((value) => {
       value.genres = genresForResult[value.id];
-      value.persons = personsForResult[value.id];
-    });
+      // value.persons = personsForResult[value.id];
+    });*/
 
-    return { result: result, amount: totalAmountOfFilms }; //[result.map(movie => [movie.name/*, movie.id, movie.countries*/]), totalAmountOfFilms];
+    return { result: result, amount: amountOfMovies }; //[result.map(movie => [movie.name/*, movie.id, movie.countries*/]), totalAmountOfFilms];
   }
 
-  async createMovie(dto: MovieDto) {
+  async createMovie(dto: FullMovieDto) {
     console.log('Movies MS - Service - createMovies at', new Date());
+    let shortDto: Movie;
+    for (const shortDtoElement in shortDto) {
+      const fieldName = Object.keys(shortDtoElement)[0];
+      shortDto[fieldName] = dto[fieldName];
+    }
 
-    const movie = await this.moviesRepository.save(dto);
+    const movie = await this.moviesRepository.save(shortDto);
 
-    this.genresClient.send('set_genres_to_movie', {
+    this.genresClient.send('setGenresToMovie', {
       movie_id: movie.id,
       genres: dto.genres,
     });
 
+    this.personsClient.send('setPersonsToMovie', {
+      id: dto.id,
+      director: dto.director,
+      actors: dto.actors,
+      producer: dto.producer,
+      cinematographer: dto.cinematographer,
+      screenwriter: dto.screenwriter,
+      composer: dto.composer,
+    });
+
     return movie;
   }
 
-  async getMovieById(id: number): Promise<Movie> {
+  async getMovieById(id: number): Promise<FullMovieDto> {
     console.log('Movies MS - Service - getMovieById at', new Date());
 
     const movie = await this.moviesRepository.findOne({ where: { id: id } });
-    const genre = await lastValueFrom(
-      this.genresClient.send('get_genre', { data: movie.id }),
+    const genres = await lastValueFrom(
+      this.genresClient.send('getGenreByMovieId', movie.id),
     );
-    movie.genres = genre;
-    return movie;
+
+    const persons = await lastValueFrom(
+      this.personsClient.send('getPersonsByMovieId', movie.id),
+    );
+
+    let fullMovie: FullMovieDto;
+    Object.entries(movie).forEach((value) => {
+      fullMovie[value[0]] = value[1];
+    });
+
+    fullMovie.genres = genres;
+    fullMovie.director = persons.director;
+    fullMovie.actors = persons.actors;
+    fullMovie.producer = persons.producer;
+    fullMovie.cinematographer = persons.cinematographer;
+    fullMovie.screenwriter = persons.screenwriter;
+    fullMovie.composer = persons.composer;
+
+    return fullMovie;
   }
 
   async deleteMovie(id: number) {
     console.log('Movies MS - Service - createMovie at', new Date());
+
+    this.genresClient.emit({ cmd: 'deleteMovieFromGenres' }, id);
+
+    this.personsClient.emit({ cmd: 'deleteMovieFromPersons' }, id);
 
     return await this.moviesRepository
       .createQueryBuilder()
@@ -156,56 +286,42 @@ export class MoviesService {
       .execute();
   }
 
-  async editMovie(dto: MovieDto) {
+  async editMovie(dto: FullMovieDto) {
     const edit = await this.moviesRepository.createQueryBuilder().update().set({
-      'backdrop.previewUrl': dto.backdropPreviewUrl,
-      'backdrop.url': dto.backdropUrl,
-      'externalId.imdb': dto.externalIdKpHD,
-      'externalId.kpHD': dto.externalIdKpHD,
-      'logo.url': dto.logoUrl,
-      'poster.previewUrl': dto.posterPreviewUrl,
-      'poster.url': dto.posterUrl,
-      'premiere.country': dto.premiereCountry,
-      'premiere.world': dto.premiereWorld,
-      'rating.await': dto.ratingAwait,
-      'rating.filmCritics': dto.ratingFilmCritics,
-      'rating.imdb': dto.ratingImdb,
-      'rating.kp': dto.ratingKp,
-      'rating.russianFilmCritics': dto.ratingRussianFilmCritics,
-      'videos.teasers': dto.videosTeasers,
-      'videos.trailers': dto['videos.trailers'],
-      'votes.await': dto.votesAwait,
-      'votes.filmCritics': dto.votesFilmCritics,
-      'votes.imdb': dto.votesImdb,
-      'votes.kp': dto.votesKp,
-      'votes.russianFilmCritics': dto.votesRussianFilmCritics,
-      'watchability.items': dto.watchabilityItems,
-      ageRating: dto.ageRating,
-      alternativeName: dto.alternativeName,
-      countries: dto.countries,
-      description: dto.description,
-      enName: dto.enName,
-      facts: dto.facts,
-      genres: dto.genres,
       id: dto.id,
-      movieLength: dto.movieLength,
-      name: dto.name,
-      names: dto.names,
-      persons: dto.persons,
-      productionCompanies: dto.productionCompanies,
-      ratingMpaa: dto.ratingMpaa,
-      seasonsInfo: dto.seasonsInfo,
-      sequelsAndPrequels: dto.sequelsAndPrequels,
-      shortDescription: dto.shortDescription,
-      similarMovies: dto.similarMovies,
-      slogan: dto.slogan,
-      status: dto.status,
-      top10: dto.top10,
-      top250: dto.top250,
+      nameRu: dto.nameRu,
+      nameEn: dto.nameEn,
       type: dto.type,
-      typeNumber: dto.typeNumber,
+      description: dto.description,
+      country: dto.country,
+      trailer: dto.trailer,
+      similarMovies: dto.similarMovies,
       year: dto.year,
+      rating: dto.rating,
+      ratingCount: dto.ratingCount,
+      ageRating: dto.ageRating,
+      poster: dto.poster,
+      duration: dto.duration,
+      slogan: dto.slogan,
     });
+
+    this.genresClient.emit(
+      { cmd: 'editGenresInMovie' },
+      { movieId: dto.id, genres: dto.genres },
+    );
+
+    this.personsClient.emit(
+      { cmd: 'editPersonsInMovie' },
+      {
+        director: dto.director,
+        actors: dto.actors,
+        producer: dto.producer,
+        cinematographer: dto.cinematographer,
+        screenwriter: dto.screenwriter,
+        composer: dto.composer,
+      },
+    );
+
     edit.where('id=:id', { id: dto.id });
     return await edit.execute();
   }
