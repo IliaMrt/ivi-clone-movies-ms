@@ -10,7 +10,7 @@ export class FullMovieDto {
   country: [];
   genres: [];
   trailer: string;
-  similarMovies: number[];
+  similarMovies: any;//number[] | MiniMovieDto[];
   year: number;
   rating: number;
   ratingCount: number;

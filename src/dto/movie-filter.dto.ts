@@ -1,4 +1,5 @@
 export class MovieFilterDto {
+  ids: number[];
   readonly genre: string;
   readonly country: string; // короткие наименования стран из countriesList, разделитель "+"
   readonly year: string; //одно число XXXX - с года XXXX, два числа через дефис XXXX-YYYY - поиск в интервале

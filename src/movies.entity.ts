@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryColumn } from 'typeorm';
 import { CountryDto } from "./dto/country.dto";
 import { PersonsDto } from "./dto/persons.dto";
 
-@Entity(`kpmovies1`)
+@Entity(`ivi-movies`)
 export class Movie {
 
   @PrimaryColumn({ type: 'numeric' })

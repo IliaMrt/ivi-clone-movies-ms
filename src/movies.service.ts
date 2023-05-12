@@ -36,15 +36,11 @@ export class MoviesService {
       ['rating', 'rating'],
       ['ratingCount', 'ratingCount'],
     ]);
-    // const years = ['2000-2020'];
-    // const rating = 8;
     let ids: number[];
-    // const partName = 'е';
-    // for (let i = 0; i < 600; i++) {
-    //   ids.push(i);
-    // }
     let rawGenresPersonsArray: number[][];
+
     const movies = await this.moviesRepository.createQueryBuilder();
+
     /*
         if (!getGenres) {
           movies.andWhere(`id in (:...genres)`, { genres: getGenres });
@@ -168,7 +164,7 @@ export class MoviesService {
       }
     });
 
-    // извлекаем id результата для использования ниже
+    // извлекаем ids результата для использования ниже в запросах к микросервисам
     const resultIds = result.map((movie) => movie.id);
 
     // запрашиваем жанры для обогащения нашей поисковой выдачи
@@ -176,44 +172,12 @@ export class MoviesService {
       await lastValueFrom(this.genresClient.send('getGenresByIds', resultIds)),
     );
 
-    // запрашиваем персон для обогащения нашей поисковой выдачи
-    const directorMap = new Map(
-      await lastValueFrom(
-        this.personsClient.send('getDirectorByIds', resultIds),
-      ),
-    );
+    // обогащаем результат жанрами
+    result.forEach((value) => {
+      value.genres = genresMap[value.id];
+    });
 
-    const actorMap = new Map(
-      await lastValueFrom(
-        this.personsClient.send('getDirectorByIds', resultIds),
-      ),
-    );
-
-    // let personsForResult = await this.personsClient
-    //   .send("get_persons_by_ids",resultIds);
-    /*
-    
-        const genresForResult = {
-          300: ['Драма', 'Хентай'],
-          301: ['Комедия'],
-          341: ['Аниме '],
-        }; //для отладки, удалить и ниже - тоже!
-    */
-
-    /* const personsForResult = {
-      300: {
-        '{"id":6915,"photo":"https://st.kp.yandex.net/images/actor_iphone/iphone360_6915.jpg","name":"Сигурни Уивер","enName":"Sigourney Weaver","profession":"актеры","enProfession":"actor"}':
-          's',
-      },
-      341: { actors: 'Всякие актёры' },
-    };
-*/
- /*   result.forEach((value) => {
-      value.genres = genresForResult[value.id];
-      // value.persons = personsForResult[value.id];
-    });*/
-
-    return { result: result, amount: amountOfMovies }; //[result.map(movie => [movie.name/*, movie.id, movie.countries*/]), totalAmountOfFilms];
+    return { result: result, amount: amountOfMovies };
   }
 
   async createMovie(dto: FullMovieDto) {
@@ -261,6 +225,12 @@ export class MoviesService {
       fullMovie[value[0]] = value[1];
     });
 
+    //заполняем similarMovies миниМувисами вместо ids
+    let tempFilter: MovieFilterDto;
+    tempFilter.ids = fullMovie.similarMovies;
+    fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
+
+    // заполняем данными, полученными от микросервисов жанры/персоны
     fullMovie.genres = genres;
     fullMovie.director = persons.director;
     fullMovie.actors = persons.actors;

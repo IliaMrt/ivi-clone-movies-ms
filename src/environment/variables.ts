@@ -4,4 +4,4 @@ export const databaseHost = process.env.POSTGRES_HOST || 'localhost'; // 'localh
 export const databaseUser = process.env.POSTGRES_USER || 'postgres';
 export const databasePassword = process.env.POSTGRES_PASSWORD || 123456;
 export const databasePort = process.env.POSTGRES_PORT || 5432;
-export const databaseName = process.env.POSTGRES_DB || 'ivi-movies';
+export const databaseName = process.env.POSTGRES_DB || 'moviesdb';
