@@ -248,6 +248,16 @@ export class MoviesService {
     this.genresClient.emit({ cmd: 'deleteMovieFromGenres' }, id);
 
     this.personsClient.emit({ cmd: 'deleteMovieFromPersons' }, id);
+    
+        //TODO: удаление комментов и файлов фильма. Раскомментить, когда будет добавлен соотв. МС, должно работать
+    //Не претендует на правильность стиля :)
+/*    this.commentsClient.send('deleteCommentsFromEssence', {
+      dto: { essenceTable: 'movies', essenceId: id },
+    });
+
+    this.filesClient.send('deleteFilesFromEssence', {
+      dto: { essenceTable: 'movies', essenceId: id },
+    });*/
 
     return await this.moviesRepository
       .createQueryBuilder()
