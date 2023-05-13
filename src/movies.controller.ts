@@ -37,7 +37,7 @@ export class MoviesController {
   }
 
   @MessagePattern({ cmd: 'getMovieById' })
-  async getMovieById(id: number): Promise<FullMovieDto> {
+  async getMovieById(id: number): Promise<any> {
     console.log('Movies MS - Controller - getMovieById at', new Date());
     return await this.moviesService.getMovieById(id);
   }

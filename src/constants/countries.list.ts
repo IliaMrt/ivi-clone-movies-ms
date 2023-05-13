@@ -270,7 +270,7 @@ export const CountriesList = new Map([
   ['tz', { nameRu: 'Танзания', nameEn: 'Tanzania' }],
   ['up', { nameRu: 'Украина', nameEn: 'Ukraine' }],
   ['ug', { nameRu: 'Уганда', nameEn: 'Uganda' }],
-  ['us', { nameRu: 'Соединенные Штаты', nameEn: 'United States' }],
+  ['us', { nameRu: 'США', nameEn: 'United States' }],
   ['uy', { nameRu: 'Уругвай', nameEn: 'Uruguay' }],
   ['uz', { nameRu: 'Узбекистан', nameEn: 'Uzbekistan' }],
   ['vt', { nameRu: 'Ватикан', nameEn: 'Vatican City' }],

@@ -30,11 +30,14 @@ export class MoviesService {
     dto: MovieFilterDto,
   ): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Service - getMovies at', new Date());
+
     let orderDirection;
     const sortMap = new Map([
-      ['name', 'nameRu'],
+      ['nameru', 'nameru'],
       ['rating', 'rating'],
-      ['ratingCount', 'ratingCount'],
+      ['nameen', 'nameen'],
+      ['ratingcount', 'ratingcount'],
+      ['duration', 'duration'],
     ]);
     let ids: number[];
     let rawGenresPersonsArray: number[][];
@@ -70,7 +73,7 @@ export class MoviesService {
         ),
       );
     }
-
+    /*   rawGenresPersonsArray = [];
     // пересекаем полученные массивы, получаем перечень id, по которым надо фильтровать
     if (rawGenresPersonsArray.length == 1) {
       ids = rawGenresPersonsArray[0];
@@ -81,24 +84,24 @@ export class MoviesService {
       if (rawGenresPersonsArray.length == 3) {
         ids = rawGenresPersonsArray[2].filter((v) => ids.includes(v));
       }
-    }
+    }*/
 
-    if (ids) {
-      movies.andWhere(`id in (:...ids)`, { ids: ids });
+    if (dto.ids /*ids*/) {
+      movies.andWhere(`id in (:...ids)`, { ids: dto.ids /*ids*/ });
     }
 
     if (dto.rating) {
       movies.andWhere('"rating" >= :rating', { rating: dto.rating });
     }
 
-    if (dto.ratingCount) {
-      movies.andWhere('"ratingCount" >= :ratingCount', {
-        ratingCount: dto.ratingCount,
+    if (dto.ratingcount) {
+      movies.andWhere('"ratingcount" >= :ratingcount', {
+        ratingcount: dto.ratingcount,
       });
     }
 
     if (dto.partName) {
-      movies.andWhere('name like :name', { name: '%' + dto.partName + '%' });
+      movies.andWhere('nameru like :nameru', { nameru: '%' + dto.partName + '%' });
     }
 
     if (dto.year) {
@@ -115,56 +118,81 @@ export class MoviesService {
       temp.forEach((c) =>
         countries.push({ name: CountriesList.get(c).nameRu }),
       );
-      movies.andWhere('countries&&:c', { c: countries });
+      movies.andWhere('country&&:c', { c: countries });
     }
 
     //если не пришёл порядок сортировки - сортируем по id
-    const order = sortMap[dto.sort] || 'id';
+    const order = dto.sort || 'id';
 
     //если не пришло направление сортировки - сортируем по возрастанию
     if (!orderDirection) orderDirection = 'ASC';
+    movies.orderBy(order, orderDirection)
 
     //если не пришла пагинация - выдаём первую страницу, 10 записей
-    const pagination = dto.pagination.length > 0 ? dto.pagination : [0, 10];
+    const pagination: number[] = [0, 10];
+    if (dto.pagination) {
+      const temp: string[] = dto.pagination.split(':');
+      pagination[0] = parseInt(temp[0]);
+      pagination[1] = parseInt(temp[1]);
+    }
 
     // выбираем поля, необходимые для формирования miniMovies
-    movies.select([
+    /* movies.select('id'/*[
       'id',
-      'nameRu',
-      'nameEn',
+      'nameru',
+      'nameen',
       'poster',
       'rating',
-      'startYear',
       'country',
       'duration',
     ]);
+*/
+
     /* movies.take(pagination[1]);
      movies.skip(pagination[0] * pagination[1]);
-     movies.orderBy(order, orderDirection);*/
+   ;*/
 
     //получаем полный результат для того, чтобы получить количество записей
-    const rawListOfMovies: Movie[] = await movies.getMany();
+
+    const rawListOfMovies = await movies.getMany();
 
     //получаем общее количество записей
     const amountOfMovies = rawListOfMovies.length;
 
     //формируем результирующий массив с учётом пагинации, но без жанров и персон
+    if (amountOfMovies < pagination[1]) {
+      pagination[1] = amountOfMovies;
+    } else if (amountOfMovies - (pagination[0] + 1) * pagination[1] < 0) {
+      pagination[1] = amountOfMovies - pagination[0] * pagination[1];
+    }
+
     const rawResult: Movie[] = rawListOfMovies.slice(
       pagination[0] * pagination[1],
       pagination[0] * pagination[1] + pagination[1] + 1,
     );
-    //------------------------------тут надо проверить пагинацию на граничные значения
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
-    let result: MiniMovieDto[];
+    const result: MiniMovieDto[] = [];
     rawResult.forEach((movie) => {
-      let tempMovie: MiniMovieDto;
+      const tempMovie: MiniMovieDto = {
+        id: undefined,
+        nameru: undefined,
+        nameen: undefined,
+        poster: undefined,
+        rating: undefined,
+        year: undefined,
+        country: undefined,
+        genres: undefined,
+        duration: undefined,
+      };
       for (const tempMovieKey in tempMovie) {
         tempMovie[tempMovieKey] = movie[tempMovieKey];
       }
+      result.push(tempMovie);
     });
-
+    /*
     // извлекаем ids результата для использования ниже в запросах к микросервисам
+    //TO DO сделать прверку на пустой result
     const resultIds = result.map((movie) => movie.id);
 
     // запрашиваем жанры для обогащения нашей поисковой выдачи
@@ -175,13 +203,14 @@ export class MoviesService {
     // обогащаем результат жанрами
     result.forEach((value) => {
       value.genres = genresMap[value.id];
-    });
+    });*/
 
     return { result: result, amount: amountOfMovies };
   }
 
   async createMovie(dto: FullMovieDto) {
     console.log('Movies MS - Service - createMovies at', new Date());
+
     let shortDto: Movie;
     for (const shortDtoElement in shortDto) {
       const fieldName = Object.keys(shortDtoElement)[0];
@@ -191,7 +220,7 @@ export class MoviesService {
     const movie = await this.moviesRepository.save(shortDto);
 
     this.genresClient.send('setGenresToMovie', {
-      movie_id: movie.id,
+      movie_id: dto.id,
       genres: dto.genres,
     });
 
@@ -208,29 +237,30 @@ export class MoviesService {
     return movie;
   }
 
-  async getMovieById(id: number): Promise<FullMovieDto> {
+  async getMovieById(id: number): Promise<any> {
     console.log('Movies MS - Service - getMovieById at', new Date());
 
     const movie = await this.moviesRepository.findOne({ where: { id: id } });
-    const genres = await lastValueFrom(
+    /*  const genres = await lastValueFrom(
       this.genresClient.send('getGenreByMovieId', movie.id),
     );
 
     const persons = await lastValueFrom(
       this.personsClient.send('getPersonsByMovieId', movie.id),
     );
-
-    let fullMovie: FullMovieDto;
+*/
+    const fullMovie = Object.create(FullMovieDto);
     Object.entries(movie).forEach((value) => {
       fullMovie[value[0]] = value[1];
     });
-
     //заполняем similarMovies миниМувисами вместо ids
-    let tempFilter: MovieFilterDto;
-    tempFilter.ids = fullMovie.similarMovies;
+
+    //TO DO сделать проверку, что они не пустые
+    const tempFilter = Object.create(MovieFilterDto);
+    tempFilter.ids = fullMovie.similarmovies;
     fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
 
-    // заполняем данными, полученными от микросервисов жанры/персоны
+    /*  // заполняем данными, полученными от микросервисов жанры/персоны
     fullMovie.genres = genres;
     fullMovie.director = persons.director;
     fullMovie.actors = persons.actors;
@@ -238,7 +268,7 @@ export class MoviesService {
     fullMovie.cinematographer = persons.cinematographer;
     fullMovie.screenwriter = persons.screenwriter;
     fullMovie.composer = persons.composer;
-
+*/
     return fullMovie;
   }
 
@@ -259,17 +289,17 @@ export class MoviesService {
   async editMovie(dto: FullMovieDto) {
     const edit = await this.moviesRepository.createQueryBuilder().update().set({
       id: dto.id,
-      nameRu: dto.nameRu,
-      nameEn: dto.nameEn,
+      nameru: dto.nameRu,
+      nameen: dto.nameEn,
       type: dto.type,
       description: dto.description,
       country: dto.country,
       trailer: dto.trailer,
-      similarMovies: dto.similarMovies,
+      similarmovies: dto.similarMovies,
       year: dto.year,
       rating: dto.rating,
-      ratingCount: dto.ratingCount,
-      ageRating: dto.ageRating,
+      ratingcount: dto.ratingCount,
+      agerating: dto.ageRating,
       poster: dto.poster,
       duration: dto.duration,
       slogan: dto.slogan,

@@ -61,7 +61,7 @@ import {
       port: Number(databasePort),
       username: databaseUser,
       password: databasePassword.toString(),
-      database: databaseName,
+      database: "moviesdb",//databaseName,
       entities: [Movie],
       synchronize: false,
     }),

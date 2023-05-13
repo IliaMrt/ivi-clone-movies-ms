@@ -1,10 +1,10 @@
 export class MiniMovieDto {
   id: number;
-  nameRu: string;
-  nameEn: string;
+  nameru: string;
+  nameen: string;
   poster: string;
   rating: number;
-  startYear: number;
+  year: number;
   country: [];
   genres: [];
   duration: number;
