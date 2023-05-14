@@ -21,6 +21,8 @@ export class MoviesService {
   constructor(
     @Inject('GENRES') private genresClient: ClientProxy,
     @Inject('PERSONS') private personsClient: ClientProxy,
+    @Inject('FILES') private filesClient: ClientProxy,
+    @Inject('COMMENTS') private commentsClient: ClientProxy,
     @Inject('AUTH') private authClient: ClientProxy,
     @InjectRepository(Movie)
     private moviesRepository: Repository<Movie>,
@@ -40,7 +42,7 @@ export class MoviesService {
       ['duration', 'duration'],
     ]);
     let ids: number[];
-    let rawGenresPersonsArray: number[][];
+    const rawGenresPersonsArray = [];
 
     const movies = await this.moviesRepository.createQueryBuilder();
 
@@ -51,43 +53,56 @@ export class MoviesService {
     */
 
     if (dto.genre) {
-      rawGenresPersonsArray.push(
-        await lastValueFrom(
-          this.genresClient.send({ cmd: 'getIdsByGenres' }, dto.genre),
-        ),
+      const temp = await lastValueFrom(
+        this.genresClient.send({ cmd: 'getIdsByGenres' }, dto.genre),
       );
+
+      if (temp) {
+        movies.andWhere(`id in (:...ids)`, { ids: temp });
+        //rawGenresPersonsArray.push(temp);
+      }
     }
 
     if (dto.director) {
-      rawGenresPersonsArray.push(
-        await lastValueFrom(
-          this.personsClient.send({ cmd: 'getIdsByDirector' }, dto.director),
-        ),
+      const temp = await lastValueFrom(
+        this.personsClient.send({ cmd: 'getIdsByDirector' }, 'dto.director'),
       );
+
+      if (temp) {
+        movies.andWhere(`id in (:...ids)`, { ids: temp });
+
+        //rawGenresPersonsArray.push(temp);
+      }
     }
 
     if (dto.actor) {
-      rawGenresPersonsArray.push(
-        await lastValueFrom(
-          this.personsClient.send({ cmd: 'getIdsByActor' }, dto.actor),
-        ),
+      const temp = await lastValueFrom(
+        this.personsClient.send({ cmd: 'getIdsByActor' }, dto.actor),
       );
-    }
-    /*   rawGenresPersonsArray = [];
-    // пересекаем полученные массивы, получаем перечень id, по которым надо фильтровать
-    if (rawGenresPersonsArray.length == 1) {
-      ids = rawGenresPersonsArray[0];
-    } else if (rawGenresPersonsArray.length > 1) {
-      ids = rawGenresPersonsArray[0].filter((v) =>
-        rawGenresPersonsArray[1].includes(v),
-      );
-      if (rawGenresPersonsArray.length == 3) {
-        ids = rawGenresPersonsArray[2].filter((v) => ids.includes(v));
-      }
-    }*/
 
-    if (dto.ids /*ids*/) {
-      movies.andWhere(`id in (:...ids)`, { ids: dto.ids /*ids*/ });
+      if (temp) {
+        movies.andWhere(`id in (:...ids)`, { ids: temp });
+        //rawGenresPersonsArray.push(temp);
+      }
+    }
+    /* // пересекаем полученные массивы, получаем перечень id, по которым надо фильтровать
+     if (rawGenresPersonsArray.length == 1) {
+       ids = rawGenresPersonsArray[0];
+     } else if (rawGenresPersonsArray.length > 1) {
+       ids = rawGenresPersonsArray[0].filter((v) =>
+         rawGenresPersonsArray[1].includes(v),
+       );
+       if (rawGenresPersonsArray.length == 3) {
+         ids = rawGenresPersonsArray[2].filter((v) => ids.includes(v));
+       }
+     }
+ 
+     if (ids) {
+       movies.andWhere(`id in (:...ids)`, { ids: ids });
+     }*/
+
+    if (dto.ids) {
+      movies.andWhere(`id in (:...ids)`, { ids: dto.ids });
     }
 
     if (dto.rating) {
@@ -101,7 +116,9 @@ export class MoviesService {
     }
 
     if (dto.partName) {
-      movies.andWhere('nameru like :nameru', { nameru: '%' + dto.partName + '%' });
+      movies.andWhere('nameru like :nameru', {
+        nameru: '%' + dto.partName + '%',
+      });
     }
 
     if (dto.year) {
@@ -126,7 +143,7 @@ export class MoviesService {
 
     //если не пришло направление сортировки - сортируем по возрастанию
     if (!orderDirection) orderDirection = 'ASC';
-    movies.orderBy(order, orderDirection)
+    movies.orderBy(order, orderDirection);
 
     //если не пришла пагинация - выдаём первую страницу, 10 записей
     const pagination: number[] = [0, 10];
@@ -209,7 +226,7 @@ export class MoviesService {
   }
 
   async createMovie(dto: FullMovieDto) {
-    console.log('Movies MS - Service - createMovies at', new Date());
+    console.log('Movies MS - Service - createMovie at', new Date());
 
     let shortDto: Movie;
     for (const shortDtoElement in shortDto) {
@@ -258,7 +275,7 @@ export class MoviesService {
     //TO DO сделать проверку, что они не пустые
     const tempFilter = Object.create(MovieFilterDto);
     tempFilter.ids = fullMovie.similarmovies;
-    fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
+    fullMovie.similarmovies = (await this.getMovies(tempFilter)).result;
 
     /*  // заполняем данными, полученными от микросервисов жанры/персоны
     fullMovie.genres = genres;
@@ -278,6 +295,18 @@ export class MoviesService {
     this.genresClient.emit({ cmd: 'deleteMovieFromGenres' }, id);
 
     this.personsClient.emit({ cmd: 'deleteMovieFromPersons' }, id);
+
+    this.commentsClient.emit('deleteCommentsFromEssence', {
+      dto: { essenceTable: 'movies', essenceId: id },
+    });
+
+    console.log(
+      await lastValueFrom(
+        this.filesClient.send('deleteFilesFromEssence', {
+          dto: { essenceTable: 'movies', essenceId: id },
+        }),
+      ),
+    );
 
     return await this.moviesRepository
       .createQueryBuilder()

@@ -25,8 +25,30 @@ import {
         name: 'PERSONS',
         transport: Transport.RMQ,
         options: {
-          urls: [process.env.RABBIT_MQ_URL],
-          queue: 'PERSONS',
+          urls: ["amqp://localhost:5672"],// [process.env.RABBIT_MQ_URL],
+          queue: 'toPersonsMs',
+          queueOptions: {
+            durable: true,
+          },
+        },
+      },
+      {
+        name: 'FILES',
+        transport: Transport.RMQ,
+        options: {
+          urls:  ["amqp://localhost:5672"],//[process.env.RABBIT_MQ_URL],
+          queue: 'toFilesMs',
+          queueOptions: {
+            durable: false,
+          },
+        },
+      },
+      {
+        name: 'COMMENTS',
+        transport: Transport.RMQ,
+        options: {
+          urls:  ["amqp://localhost:5672"],//[process.env.RABBIT_MQ_URL],
+          queue: 'toCommentsMs',
           queueOptions: {
             durable: false,
           },

@@ -19,9 +19,9 @@ export class MoviesController {
   }
 
   @MessagePattern({ cmd: 'deleteMovie' })
-  async deleteMovie(id: number) {
+  async deleteMovie(id: { id:number }) {
     console.log('Movies MS - Controller - deleteMovie at', new Date());
-    return await this.moviesService.deleteMovie(id);
+    return await this.moviesService.deleteMovie(id.id);
   }
 
   @MessagePattern({ cmd: 'editMovie' })
@@ -32,7 +32,7 @@ export class MoviesController {
 
   @MessagePattern({ cmd: 'createMovie' })
   async createMovie(dto: FullMovieDto): Promise<Movie> {
-    console.log('Movies MS - Controller - deleteMovie at', new Date());
+    console.log('Movies MS - Controller - createMovie at', new Date());
     return await this.moviesService.createMovie(dto);
   }
 
