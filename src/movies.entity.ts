@@ -4,8 +4,8 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 export class Movie {
   @PrimaryGeneratedColumn('increment')
   id: number;
-
-  @Column({ type: 'varchar', length: 255 })
+  //TODO nullable удалить из продакшена
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   nameru: string;
 
   @Column({ nullable: true, type: 'varchar', length: 255 })
@@ -38,7 +38,8 @@ export class Movie {
 
   @Column({ nullable: true, type: 'text' })
   poster: string;
-  @Column({ type: 'numeric' })
+  //TODO nullable удалить из продакшена
+  @Column({ nullable: true, type: 'numeric' })
   duration: number;
 
   @Column({ nullable: true, type: 'text' })

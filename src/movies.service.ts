@@ -256,24 +256,26 @@ export class MoviesService {
         return e;
       });
 
-    if (movie === null) return 'Movie not found';
+    if (movie === null)
+      return { movie: {}, errors: [{ movie: 'Movie not found' }] };
 
     const genres = await lastValueFrom(
-      this.genresClient.send('getGenreByMovieId', movie.id),
+      this.genresClient.send({ cmd: 'getGenreById' }, movie.id),
     ).catch((e) => errors.push({ genres: e }));
 
     const persons = await lastValueFrom(
-      this.personsClient.emit('getPersonsByMovieId', movie.id),
+      this.personsClient.send({ cmd: 'getPersonsByMovieId' }, movie.id),
     ).catch((e) => {
       errors.push({ persons: e });
     });
+    console.log(persons);
 
     const fullMovie = Object.create(FullMovieDto);
     Object.entries(movie).forEach((value) => {
       fullMovie[value[0]] = value[1];
     });
+
     //заполняем similarMovies миниМувисами вместо ids
-    ///////подключить мс жанры и персоны, срастить дтошки
 
     if (fullMovie.similarmovies && fullMovie.similarmovies.length) {
       const tempFilter = Object.create(MovieFilterDto);
@@ -291,7 +293,7 @@ export class MoviesService {
       fullMovie.composer = persons.composer;
     }
 
-    return fullMovie;
+    return { movie: fullMovie, errors: errors };
   }
 
   async deleteMovie(id: number) {
@@ -354,7 +356,7 @@ export class MoviesService {
 
     await lastValueFrom(
       this.genresClient.send(
-        { cmd: 'editGenresInMovie' },
+        { cmd: 'updateGenre' },
         { movieId: dto.id, genres: dto.genres },
       ),
     ).catch((e) => errors.push({ genres: e }));
