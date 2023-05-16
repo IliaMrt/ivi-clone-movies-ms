@@ -1,54 +1,50 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
-// import { ApiProperty } from '@nestjs/swagger';
-import { CountryDto } from './dto/country.dto';
-import { PersonsDto } from './dto/persons.dto';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity("ivi-movies")
+@Entity('ivi-movies5')
 export class Movie {
-  @PrimaryColumn({ type: 'numeric' })
+  @PrimaryGeneratedColumn('increment')
   id: number;
 
   @Column({ type: 'varchar', length: 255 })
   nameru: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   nameen: string;
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   type: string;
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   description: string;
 
   @Column({ type: 'simple-array' })
-  country: CountryDto[];
+  country: string[]; // CountryDto[];
   // genres: genre[],
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   trailer: string;
 
-  @Column({ type: 'simple-array' })
+  @Column({ nullable: true, type: 'simple-array' })
   similarmovies: number[];
 
   @Column({ type: 'numeric' })
   year: number;
 
-  @Column({ type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric' })
   rating: number;
 
-  @Column({ type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric' })
   ratingcount: number;
 
-  @Column({ type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric' })
   agerating: number;
 
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   poster: string;
-
   @Column({ type: 'numeric' })
   duration: number;
 
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   slogan: string;
 
-/*  @Column({ type: 'simple-array' })
+  /*  @Column({ type: 'simple-array' })
   director: PersonsDto[];
 
   @Column({ type: 'simple-array' })

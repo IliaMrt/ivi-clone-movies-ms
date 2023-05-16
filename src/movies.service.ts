@@ -11,10 +11,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { MovieFilterDto } from './dto/movie-filter.dto';
 import { MiniMovieDto } from './dto/mini-movie.dto';
-// import { PersonsDto } from './dto/persons.dto';
 import { CountriesList } from './constants/countries.list';
-
-// import { GenresDto } from './dto/genres.dto';
 
 @Injectable()
 export class MoviesService {
@@ -33,75 +30,52 @@ export class MoviesService {
   ): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Service - getMovies at', new Date());
 
-    let orderDirection;
-    const sortMap = new Map([
-      ['nameru', 'nameru'],
-      ['rating', 'rating'],
-      ['nameen', 'nameen'],
-      ['ratingcount', 'ratingcount'],
-      ['duration', 'duration'],
-    ]);
-    let ids: number[];
-    const rawGenresPersonsArray = [];
-
     const movies = await this.moviesRepository.createQueryBuilder();
 
-    /*
-        if (!getGenres) {
-          movies.andWhere(`id in (:...genres)`, { genres: getGenres });
-        }
-    */
-
     if (dto.genre) {
-      const temp = await lastValueFrom(
-        this.genresClient.send({ cmd: 'getIdsByGenres' }, dto.genre),
+      const responseFromGenres: any[] = await lastValueFrom(
+        this.genresClient.send(
+          { cmd: 'getMoviesByGenres' },
+          { genres: dto.genre.split(' ') },
+        ),
       );
-
-      if (temp) {
-        movies.andWhere(`id in (:...ids)`, { ids: temp });
+      if (responseFromGenres.length) {
+        movies.andWhere(`id in (:...ids)`, { ids: responseFromGenres });
         //rawGenresPersonsArray.push(temp);
       }
     }
 
     if (dto.director) {
-      const temp = await lastValueFrom(
-        this.personsClient.send({ cmd: 'getIdsByDirector' }, 'dto.director'),
+      const responseFromPerson = await lastValueFrom(
+        this.personsClient.send(
+          { cmd: 'getIdsByDirector' },
+          { role: 'director', name: dto.director },
+        ),
       );
-
-      if (temp) {
-        movies.andWhere(`id in (:...ids)`, { ids: temp });
-
-        //rawGenresPersonsArray.push(temp);
+      if (responseFromPerson) {
+        movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
       }
     }
 
     if (dto.actor) {
-      const temp = await lastValueFrom(
-        this.personsClient.send({ cmd: 'getIdsByActor' }, dto.actor),
+      const responseFromPerson = await lastValueFrom(
+        this.personsClient.send(
+          { cmd: 'getIdsByActor' },
+          { role: 'actor', name: dto.actor },
+        ),
       );
 
-      if (temp) {
-        movies.andWhere(`id in (:...ids)`, { ids: temp });
-        //rawGenresPersonsArray.push(temp);
+      if (responseFromPerson) {
+        movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
       }
     }
-    /* // пересекаем полученные массивы, получаем перечень id, по которым надо фильтровать
-     if (rawGenresPersonsArray.length == 1) {
-       ids = rawGenresPersonsArray[0];
-     } else if (rawGenresPersonsArray.length > 1) {
-       ids = rawGenresPersonsArray[0].filter((v) =>
-         rawGenresPersonsArray[1].includes(v),
-       );
-       if (rawGenresPersonsArray.length == 3) {
-         ids = rawGenresPersonsArray[2].filter((v) => ids.includes(v));
-       }
-     }
- 
-     if (ids) {
-       movies.andWhere(`id in (:...ids)`, { ids: ids });
-     }*/
 
     if (dto.ids) {
+      //если ids приходит от клиента, а не от локальной функции, нам надо из строки привести его к массиву
+      if (typeof dto.ids == 'string') {
+        dto.ids = dto.ids.split(' ').map((value) => parseInt(value, 10));
+      }
+
       movies.andWhere(`id in (:...ids)`, { ids: dto.ids });
     }
 
@@ -130,20 +104,22 @@ export class MoviesService {
     }
 
     if (dto.country) {
-      const temp = dto.country.split('+');
+      const temp = dto.country.split(' ');
       const countries = [];
       temp.forEach((c) =>
-        countries.push({ name: CountriesList.get(c).nameRu }),
+        // countries.push({ name: CountriesList.get(c).nameRu }),
+        countries.push(CountriesList.get(c).nameRu),
       );
-      movies.andWhere('country&&:c', { c: countries });
+
+      movies.andWhere(`string_to_array(country,',')&&:c::text[]`, {
+        c: countries,
+      });
     }
 
     //если не пришёл порядок сортировки - сортируем по id
     const order = dto.sort || 'id';
 
-    //если не пришло направление сортировки - сортируем по возрастанию
-    if (!orderDirection) orderDirection = 'ASC';
-    movies.orderBy(order, orderDirection);
+    movies.orderBy(order, 'ASC');
 
     //если не пришла пагинация - выдаём первую страницу, 10 записей
     const pagination: number[] = [0, 10];
@@ -153,26 +129,9 @@ export class MoviesService {
       pagination[1] = parseInt(temp[1]);
     }
 
-    // выбираем поля, необходимые для формирования miniMovies
-    /* movies.select('id'/*[
-      'id',
-      'nameru',
-      'nameen',
-      'poster',
-      'rating',
-      'country',
-      'duration',
-    ]);
-*/
-
-    /* movies.take(pagination[1]);
-     movies.skip(pagination[0] * pagination[1]);
-   ;*/
-
     //получаем полный результат для того, чтобы получить количество записей
 
     const rawListOfMovies = await movies.getMany();
-
     //получаем общее количество записей
     const amountOfMovies = rawListOfMovies.length;
 
@@ -187,7 +146,7 @@ export class MoviesService {
       pagination[0] * pagination[1],
       pagination[0] * pagination[1] + pagination[1] + 1,
     );
-
+    console.log(0);
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
     const result: MiniMovieDto[] = [];
     rawResult.forEach((movie) => {
@@ -207,151 +166,219 @@ export class MoviesService {
       }
       result.push(tempMovie);
     });
-    /*
+    console.log(1);
     // извлекаем ids результата для использования ниже в запросах к микросервисам
     //TO DO сделать прверку на пустой result
     const resultIds = result.map((movie) => movie.id);
-
     // запрашиваем жанры для обогащения нашей поисковой выдачи
-    const genresMap = new Map(
-      await lastValueFrom(this.genresClient.send('getGenresByIds', resultIds)),
+    const genresMap: Map<number, string> = new Map(
+      await lastValueFrom(
+        this.genresClient.send({ cmd: 'getGenreById' }, resultIds),
+      ),
     );
-
+    /* return [
+    [41507, 'Ужас'],
+  [419709,'Комедия']
+]*/
+    console.log(2);
     // обогащаем результат жанрами
     result.forEach((value) => {
-      value.genres = genresMap[value.id];
-    });*/
-
+      value.genres = genresMap.get(value.id);
+    });
+    console.log(3);
     return { result: result, amount: amountOfMovies };
   }
 
   async createMovie(dto: FullMovieDto) {
     console.log('Movies MS - Service - createMovie at', new Date());
-
+    /*
     let shortDto: Movie;
     for (const shortDtoElement in shortDto) {
       const fieldName = Object.keys(shortDtoElement)[0];
       shortDto[fieldName] = dto[fieldName];
-    }
+    }*/
 
-    const movie = await this.moviesRepository.save(shortDto);
+    /*    const shortDto = Object.create(Movie);
+    Object.entries(shortDto).forEach((value) => {
+      dto[value[0]] = value[1];
+    });*/
 
-    this.genresClient.send('setGenresToMovie', {
-      movie_id: dto.id,
-      genres: dto.genres,
-    });
-
-    this.personsClient.send('setPersonsToMovie', {
+    //TODO как это можно сделать по человечески?
+    const shortDto: Movie = {
       id: dto.id,
-      director: dto.director,
-      actors: dto.actors,
-      producer: dto.producer,
-      cinematographer: dto.cinematographer,
-      screenwriter: dto.screenwriter,
-      composer: dto.composer,
-    });
-
-    return movie;
-  }
-
-  async getMovieById(id: number): Promise<any> {
-    console.log('Movies MS - Service - getMovieById at', new Date());
-
-    const movie = await this.moviesRepository.findOne({ where: { id: id } });
-    /*  const genres = await lastValueFrom(
-      this.genresClient.send('getGenreByMovieId', movie.id),
-    );
-
-    const persons = await lastValueFrom(
-      this.personsClient.send('getPersonsByMovieId', movie.id),
-    );
-*/
-    const fullMovie = Object.create(FullMovieDto);
-    Object.entries(movie).forEach((value) => {
-      fullMovie[value[0]] = value[1];
-    });
-    //заполняем similarMovies миниМувисами вместо ids
-
-    //TO DO сделать проверку, что они не пустые
-    const tempFilter = Object.create(MovieFilterDto);
-    tempFilter.ids = fullMovie.similarmovies;
-    fullMovie.similarmovies = (await this.getMovies(tempFilter)).result;
-
-    /*  // заполняем данными, полученными от микросервисов жанры/персоны
-    fullMovie.genres = genres;
-    fullMovie.director = persons.director;
-    fullMovie.actors = persons.actors;
-    fullMovie.producer = persons.producer;
-    fullMovie.cinematographer = persons.cinematographer;
-    fullMovie.screenwriter = persons.screenwriter;
-    fullMovie.composer = persons.composer;
-*/
-    return fullMovie;
-  }
-
-  async deleteMovie(id: number) {
-    console.log('Movies MS - Service - createMovie at', new Date());
-
-    this.genresClient.emit({ cmd: 'deleteMovieFromGenres' }, id);
-
-    this.personsClient.emit({ cmd: 'deleteMovieFromPersons' }, id);
-
-    this.commentsClient.emit('deleteCommentsFromEssence', {
-      dto: { essenceTable: 'movies', essenceId: id },
-    });
-
-    console.log(
-      await lastValueFrom(
-        this.filesClient.send('deleteFilesFromEssence', {
-          dto: { essenceTable: 'movies', essenceId: id },
-        }),
-      ),
-    );
-
-    return await this.moviesRepository
-      .createQueryBuilder()
-      .delete()
-      .where('id=:id', { id: id })
-      .execute();
-  }
-
-  async editMovie(dto: FullMovieDto) {
-    const edit = await this.moviesRepository.createQueryBuilder().update().set({
-      id: dto.id,
-      nameru: dto.nameRu,
-      nameen: dto.nameEn,
+      nameru: dto.nameru,
+      nameen: dto.nameen,
       type: dto.type,
       description: dto.description,
       country: dto.country,
       trailer: dto.trailer,
-      similarmovies: dto.similarMovies,
+      similarmovies: dto.similarmovies,
       year: dto.year,
       rating: dto.rating,
-      ratingcount: dto.ratingCount,
-      agerating: dto.ageRating,
+      ratingcount: dto.ratingcount,
+      agerating: dto.agerating,
       poster: dto.poster,
       duration: dto.duration,
       slogan: dto.slogan,
-    });
+    };
 
-    this.genresClient.emit(
-      { cmd: 'editGenresInMovie' },
-      { movieId: dto.id, genres: dto.genres },
-    );
+    const movie = await this.moviesRepository.save(shortDto);
+    const errors = [];
+    const genres = await lastValueFrom(
+      this.genresClient.emit('setGenresToMovie', {
+        movie_id: movie.id,
+        genres: dto.genres,
+      }),
+    ).catch((e) => errors.push(e));
 
-    this.personsClient.emit(
-      { cmd: 'editPersonsInMovie' },
-      {
+    const persons = await lastValueFrom(
+      this.personsClient.send('setPersonsToMovie', {
+        id: movie.id,
         director: dto.director,
         actors: dto.actors,
         producer: dto.producer,
         cinematographer: dto.cinematographer,
         screenwriter: dto.screenwriter,
         composer: dto.composer,
-      },
-    );
+      }),
+    ).catch((e) => errors.push(e));
+    console.log(`genres: ${genres}, persons: ${persons}`);
+    return { movie: movie, errors: errors };
+  }
+
+  async getMovieById(id: number): Promise<any> {
+    console.log('Movies MS - Service - getMovieById at', new Date());
+    const errors = [];
+
+    const movie = await this.moviesRepository
+      .findOne({ where: { id: id } })
+      .catch((e) => {
+        return e;
+      });
+
+    if (movie === null) return 'Movie not found';
+
+    const genres = await lastValueFrom(
+      this.genresClient.send('getGenreByMovieId', movie.id),
+    ).catch((e) => errors.push({ genres: e }));
+
+    const persons = await lastValueFrom(
+      this.personsClient.emit('getPersonsByMovieId', movie.id),
+    ).catch((e) => {
+      errors.push({ persons: e });
+    });
+
+    const fullMovie = Object.create(FullMovieDto);
+    Object.entries(movie).forEach((value) => {
+      fullMovie[value[0]] = value[1];
+    });
+    //заполняем similarMovies миниМувисами вместо ids
+    ///////подключить мс жанры и персоны, срастить дтошки
+
+    if (fullMovie.similarmovies && fullMovie.similarmovies.length) {
+      const tempFilter = Object.create(MovieFilterDto);
+      tempFilter.ids = fullMovie.similarmovies;
+      fullMovie.similarmovies = (await this.getMovies(tempFilter)).result;
+    }
+    // заполняем данными, полученными от микросервисов жанры/персоны
+    if (genres) fullMovie.genres = genres;
+    if (persons) {
+      fullMovie.director = persons.director;
+      fullMovie.actors = persons.actors;
+      fullMovie.producer = persons.producer;
+      fullMovie.cinematographer = persons.cinematographer;
+      fullMovie.screenwriter = persons.screenwriter;
+      fullMovie.composer = persons.composer;
+    }
+
+    return fullMovie;
+  }
+
+  async deleteMovie(id: number) {
+    console.log('Movies MS - Service - createMovie at', new Date());
+    const errors = [];
+    await lastValueFrom(
+      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, id),
+    ).catch((e) => errors.push({ genres: e }));
+
+    await lastValueFrom(
+      this.personsClient.emit({ cmd: 'deleteMovieFromPersons' }, id),
+    ).catch((e) => errors.push({ persons: e }));
+
+    await lastValueFrom(
+      this.commentsClient.emit('deleteCommentsFromEssence', {
+        dto: { essenceTable: 'movies', essenceId: id },
+      }),
+    ).catch((e) => errors.push({ comments: e }));
+
+    await lastValueFrom(
+      this.filesClient.send('deleteFilesFromEssence', {
+        dto: { essenceTable: 'movies', essenceId: id },
+      }),
+    ).catch((e) => errors.push({ files: e }));
+
+    const result = await this.moviesRepository
+      .createQueryBuilder()
+      .delete()
+      .where('id=:id', { id: id })
+      .execute()
+      .catch((e) =>
+        errors.push({
+          movies: e,
+        }),
+      );
+    return { result: result, errors: errors };
+  }
+
+  async editMovie(dto: FullMovieDto) {
+    console.log('Movies MS - Service - editMovie at', new Date());
+
+    const errors = [];
+    const edit = await this.moviesRepository.createQueryBuilder().update().set({
+      id: dto.id,
+      nameru: dto.nameru,
+      nameen: dto.nameen,
+      type: dto.type,
+      description: dto.description,
+      country: dto.country,
+      trailer: dto.trailer,
+      similarmovies: dto.similarmovies,
+      year: dto.year,
+      rating: dto.rating,
+      ratingcount: dto.ratingcount,
+      agerating: dto.agerating,
+      poster: dto.poster,
+      duration: dto.duration,
+      slogan: dto.slogan,
+    });
+
+    await lastValueFrom(
+      this.genresClient.send(
+        { cmd: 'editGenresInMovie' },
+        { movieId: dto.id, genres: dto.genres },
+      ),
+    ).catch((e) => errors.push({ genres: e }));
+
+    await lastValueFrom(
+      this.personsClient.send(
+        { cmd: 'editPersonsInMovie' },
+        {
+          director: dto.director,
+          actors: dto.actors,
+          producer: dto.producer,
+          cinematographer: dto.cinematographer,
+          screenwriter: dto.screenwriter,
+          composer: dto.composer,
+        },
+      ),
+    ).catch((e) => errors.push({ persons: e }));
 
     edit.where('id=:id', { id: dto.id });
-    return await edit.execute();
+    const result = await edit.execute().catch((e) =>
+      errors.push({
+        movies: e,
+      }),
+    );
+    return { result: result, errors: errors };
   }
 }

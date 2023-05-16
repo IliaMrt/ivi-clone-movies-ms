@@ -6,6 +6,6 @@ export class MiniMovieDto {
   rating: number;
   year: number;
   country: [];
-  genres: [];
+  genres: string;
   duration: number;
 }
