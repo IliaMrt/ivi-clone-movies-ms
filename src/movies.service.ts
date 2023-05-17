@@ -8,7 +8,8 @@ import { lastValueFrom } from 'rxjs';
 import { MovieFilterDto } from './dto/movie-filter.dto';
 import { MiniMovieDto } from './dto/mini-movie.dto';
 import { CountriesList } from './constants/countries.list';
-import { GenresDto } from "./dto/genres.dto";
+import { GenresDto } from './dto/genres.dto';
+import { UpdateMovieDto } from './dto/update.movie.dto';
 
 @Injectable()
 export class MoviesService {
@@ -210,23 +211,29 @@ export class MoviesService {
     const movie = await this.moviesRepository.save(shortDto);
     const errors = [];
     const genres = await lastValueFrom(
-      this.genresClient.emit('addGenresToMovie', {
-        movie_id: movie.id,
-        genres: dto.genres,
-      }),
-    ).catch((e) => errors.push(e));
+      this.genresClient.send(
+        { cmd: 'addGenresToMovie' },
+        {
+          movieId: movie.id,
+          genres: dto.genres,
+        },
+      ),
+    ).catch((e) => errors.push({ service: 'genres', error: e }));
 
     const persons = await lastValueFrom(
-      this.personsClient.send('setPersonsToMovie', {
-        id: movie.id,
-        director: dto.director,
-        actors: dto.actors,
-        producer: dto.producer,
-        cinematographer: dto.cinematographer,
-        screenwriter: dto.screenwriter,
-        composer: dto.composer,
-      }),
-    ).catch((e) => errors.push(e));
+      this.personsClient.send(
+        { cmd: 'setPersonsToMovie' },
+        {
+          id: movie.id,
+          director: dto.director,
+          actors: dto.actors,
+          producer: dto.producer,
+          cinematographer: dto.cinematographer,
+          screenwriter: dto.screenwriter,
+          composer: dto.composer,
+        },
+      ),
+    ).catch((e) => errors.push({ service: 'persons', error: e }));
     console.log(`genres: ${genres}, persons: ${persons}`);
     return { movie: movie, errors: errors };
   }
@@ -282,7 +289,7 @@ export class MoviesService {
   }
 
   async deleteMovie(id: number) {
-    console.log('Movies MS - Service - createMovie at', new Date());
+    console.log('Movies MS - Service - deleteMovie at', new Date());
     const errors = [];
 
     await lastValueFrom(
@@ -319,32 +326,31 @@ export class MoviesService {
     return { result: result, errors: errors };
   }
 
-  async editMovie(dto: FullMovieDto) {
+  async updateMovie(movieId: number, updateMovieDto: UpdateMovieDto) {
     console.log('Movies MS - Service - editMovie at', new Date());
-
+    console.log(JSON.stringify(updateMovieDto));
     const errors = [];
     const edit = await this.moviesRepository.createQueryBuilder().update().set({
-      id: dto.id,
-      nameRu: dto.nameRu,
-      nameEn: dto.nameEn,
-      type: dto.type,
-      description: dto.description,
-      country: dto.country,
-      trailer: dto.trailer,
-      similarMovies: dto.similarMovies,
-      year: dto.year,
-      rating: dto.rating,
-      ratingCount: dto.ratingCount,
-      ageRating: dto.ageRating,
-      poster: dto.poster,
-      duration: dto.duration,
-      slogan: dto.slogan,
+      id: movieId,
+      nameRu: updateMovieDto.nameRu,
+      nameEn: updateMovieDto.nameEn,
+      type: updateMovieDto.type,
+      description: updateMovieDto.description,
+      country: updateMovieDto.country,
+      trailer: updateMovieDto.trailer,
+      similarMovies: updateMovieDto.similarMovies,
+      year: updateMovieDto.year,
+      rating: updateMovieDto.rating,
+      ratingCount: updateMovieDto.ratingCount,
+      ageRating: updateMovieDto.ageRating,
+      poster: updateMovieDto.poster,
+      duration: updateMovieDto.duration,
+      slogan: updateMovieDto.slogan,
     });
-
     await lastValueFrom(
       this.genresClient.send(
         { cmd: 'updateGenre' },
-        { movieId: dto.id, genres: dto.genres },
+        { movieId: movieId, genres: [updateMovieDto.genres] },
       ),
     ).catch((e) => errors.push({ genres: e }));
 
@@ -352,17 +358,18 @@ export class MoviesService {
       this.personsClient.send(
         { cmd: 'editPersonsInMovie' },
         {
-          director: dto.director,
-          actors: dto.actors,
-          producer: dto.producer,
-          cinematographer: dto.cinematographer,
-          screenwriter: dto.screenwriter,
-          composer: dto.composer,
+          id: movieId,
+          director: updateMovieDto.director,
+          actors: updateMovieDto.actors,
+          producer: updateMovieDto.producer,
+          cinematographer: updateMovieDto.cinematographer,
+          screenwriter: updateMovieDto.screenwriter,
+          composer: updateMovieDto.composer,
         },
       ),
     ).catch((e) => errors.push({ persons: e }));
 
-    edit.where('id=:id', { id: dto.id });
+    edit.where('id=:id', { id: movieId });
     const result = await edit.execute().catch((e) =>
       errors.push({
         movies: e,

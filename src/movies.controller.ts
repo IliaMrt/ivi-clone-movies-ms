@@ -5,6 +5,7 @@ import { MoviesService } from './movies.service';
 import { MovieFilterDto } from './dto/movie-filter.dto';
 import { FullMovieDto } from './dto/full.movie.dto';
 import { MiniMovieDto } from './dto/mini-movie.dto';
+import { UpdateMovieDto } from './dto/update.movie.dto';
 
 @Controller()
 export class MoviesController {
@@ -24,10 +25,13 @@ export class MoviesController {
     return await this.moviesService.deleteMovie(movieId.movieId);
   }
 
-  @MessagePattern({ cmd: 'editMovie' })
-  async editMovie(dto: FullMovieDto) {
+  @MessagePattern({ cmd: 'updateMovie' })
+  async updateMovie(input: {
+    movieId: number;
+    updateMovieDto: UpdateMovieDto;
+  }) {
     console.log('Movies MS - Controller - editMovie at', new Date());
-    return await this.moviesService.editMovie(dto);
+    return await this.moviesService.updateMovie(input.movieId, input.updateMovieDto);
   }
 
   @MessagePattern({ cmd: 'createMovie' })
