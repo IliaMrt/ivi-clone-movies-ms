@@ -349,8 +349,8 @@ export class MoviesService {
     });
     await lastValueFrom(
       this.genresClient.send(
-        { cmd: 'updateGenre' },
-        { movieId: movieId, genres: [updateMovieDto.genres] },
+        { cmd: 'addGenresToMovie' },
+        { movieId: movieId, genres: updateMovieDto.genres },
       ),
     ).catch((e) => errors.push({ genres: e }));
 
