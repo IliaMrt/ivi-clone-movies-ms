@@ -98,6 +98,7 @@ export class MoviesService {
 
     if (dto.year) {
       const years = dto.year.split('-');
+      if (years.length == 1) years[1] = years[0];
       movies.andWhere('year >= :start', { start: years[0] });
       if (years[1]) {
         movies.andWhere('year <= :end', { end: years[1] });
@@ -222,7 +223,6 @@ export class MoviesService {
         },
       ),
     ).catch((e) => errors.push({ genres: e }));
-
     const persons = await lastValueFrom(
       this.personsClient.send(
         { cmd: 'setPersonsToMovie' },
