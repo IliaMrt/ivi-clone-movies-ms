@@ -218,7 +218,7 @@ export class MoviesService {
           genres: dto.genres,
         },
       ),
-    ).catch((e) => errors.push({ service: 'genres', error: e }));
+    ).catch((e) => errors.push({ genres: e }));
 
     const persons = await lastValueFrom(
       this.personsClient.send(
@@ -233,7 +233,7 @@ export class MoviesService {
           composer: dto.composer,
         },
       ),
-    ).catch((e) => errors.push({ service: 'persons', error: e }));
+    ).catch((e) => errors.push({ persons: e }));
     console.log(`genres: ${genres}, persons: ${persons}`);
     return { movie: movie, errors: errors };
   }
@@ -290,29 +290,9 @@ export class MoviesService {
 
   async deleteMovie(id: number) {
     console.log('Movies MS - Service - deleteMovie at', new Date());
+
     const errors = [];
-
-    await lastValueFrom(
-      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
-    ).catch((e) => errors.push({ genres: e }));
-
-    await lastValueFrom(
-      this.personsClient.emit({ cmd: 'deleteMovieFromPersons' }, id),
-    ).catch((e) => errors.push({ persons: e }));
-
-    await lastValueFrom(
-      this.commentsClient.emit('deleteCommentsFromEssence', {
-        dto: { essenceTable: 'movies', essenceId: id },
-      }),
-    ).catch((e) => errors.push({ comments: e }));
-
-    await lastValueFrom(
-      this.filesClient.send('deleteFilesFromEssence', {
-        dto: { essenceTable: 'movies', essenceId: id },
-      }),
-    ).catch((e) => errors.push({ files: e }));
-
-    const result = await this.moviesRepository
+    const result: any = await this.moviesRepository
       .createQueryBuilder()
       .delete()
       .where('id=:id', { id: id })
@@ -323,12 +303,41 @@ export class MoviesService {
         }),
       );
 
+    if (result.affected == 0)
+      errors.push({ movies: 'Movie with this number not found' });
+    if (errors) return { result: {}, errors: errors };
+
+    await lastValueFrom(
+      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
+    ).catch((e) => errors.push({ genres: e }));
+
+    await lastValueFrom(
+      this.personsClient.send({ cmd: 'deleteMovieFromPersons' }, id),
+    ).catch((e) => errors.push({ persons: e }));
+
+    await lastValueFrom(
+      this.commentsClient.send(
+        { cmd: 'deleteCommentsFromEssence' },
+        {
+          dto: { essenceTable: 'movies', essenceId: id },
+        },
+      ),
+    ).catch((e) => errors.push({ comments: e }));
+
+    await lastValueFrom(
+      this.filesClient.send(
+        { cmd: 'deleteFiles' },
+        {
+          dto: { essenceTable: 'movies', essenceId: id },
+        },
+      ),
+    ).catch((e) => errors.push({ files: e }));
+
     return { result: result, errors: errors };
   }
 
   async updateMovie(movieId: number, updateMovieDto: UpdateMovieDto) {
     console.log('Movies MS - Service - editMovie at', new Date());
-    console.log(JSON.stringify(updateMovieDto));
     const errors = [];
     const edit = await this.moviesRepository.createQueryBuilder().update().set({
       id: movieId,
@@ -375,6 +384,7 @@ export class MoviesService {
         movies: e,
       }),
     );
+
     return { result: result, errors: errors };
   }
 }
