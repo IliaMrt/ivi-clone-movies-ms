@@ -51,7 +51,7 @@ export class MoviesService {
         ),
       );
       if (!responseFromPerson.length) {
-        return { result: [], amount: 0 };
+        return { result: null, amount: 0 };
       }
       movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
     }
@@ -65,7 +65,7 @@ export class MoviesService {
       );
 
       if (!responseFromPerson) {
-        return { result: [], amount: 0 };
+        return { result: null, amount: 0 };
       }
 
       movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
