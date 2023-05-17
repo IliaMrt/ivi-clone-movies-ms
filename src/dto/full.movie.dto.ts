@@ -1,19 +1,20 @@
 import { PersonsDto } from './persons.dto';
+import { MiniMovieDto } from "./mini-movie.dto";
 
 export class FullMovieDto {
   id: number;
-  nameru: string;
-  nameen: string;
+  nameRu: string;
+  nameEn: string;
   type: string;
   description: string;
   country: [];
   genres: [];
   trailer: string;
-  similarmovies: any; //number[] | MiniMovieDto[];
+  similarMovies: number[] | MiniMovieDto[];
   year: number;
   rating: number;
-  ratingcount: number;
-  agerating: number;
+  ratingCount: number;
+  ageRating: number;
   poster: string;
   duration: number;
   slogan: string;

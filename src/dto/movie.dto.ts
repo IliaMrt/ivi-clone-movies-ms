@@ -12,7 +12,6 @@ export class ShortMovieDto {
   type: string;
   description: string;
   country: CountryDto[];
-  // genres: GenresDto[];
   trailer: string;
   similarMovies: number[];
   year: number;

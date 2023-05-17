@@ -1,11 +1,13 @@
+import { GenresDto } from "./genres.dto";
+
 export class MiniMovieDto {
   id: number;
-  nameru: string;
-  nameen: string;
+  nameRu: string;
+  nameEn: string;
   poster: string;
   rating: number;
   year: number;
   country: [];
-  genres: string;
+  genres: GenresDto;
   duration: number;
 }

@@ -5,7 +5,7 @@ import { databaseHost, port, rmqUrl } from './environment/variables';
 
 async function bootstrap() {
   const app = await NestFactory.create(MoviesModule);
-  const microservice = app.connectMicroservice({
+  app.connectMicroservice({
     transport: Transport.RMQ,
     options: {
       urls: [rmqUrl],

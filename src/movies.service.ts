@@ -3,15 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Movie } from './movies.entity';
 import { FullMovieDto } from './dto/full.movie.dto';
-// import { GetMovieDto } from './dto/getMovie.dto';
-// import { AUTH_SERVICE, GENRES_SERVICE } from "./constants/services";
-// import { COMMENTS_SERVICE } from "./constants/services";
-// import { PERSONS_SERVICE } from "./constants/services";
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { MovieFilterDto } from './dto/movie-filter.dto';
 import { MiniMovieDto } from './dto/mini-movie.dto';
 import { CountriesList } from './constants/countries.list';
+import { GenresDto } from "./dto/genres.dto";
 
 @Injectable()
 export class MoviesService {
@@ -39,22 +36,24 @@ export class MoviesService {
           { genres: dto.genre.split(' ') },
         ),
       );
-      if (responseFromGenres.length) {
-        movies.andWhere(`id in (:...ids)`, { ids: responseFromGenres });
-        //rawGenresPersonsArray.push(temp);
+      if (!responseFromGenres.length) {
+        return { result: [], amount: 0 };
       }
+      movies.andWhere(`id in (:...ids)`, { ids: responseFromGenres });
+      //rawGenresPersonsArray.push(temp);
     }
 
     if (dto.director) {
-      const responseFromPerson = await lastValueFrom(
+      const responseFromPerson: number[] = await lastValueFrom(
         this.personsClient.send(
           { cmd: 'getIdsByDirector' },
           { role: 'director', name: dto.director },
         ),
       );
-      if (responseFromPerson) {
-        movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
+      if (!responseFromPerson.length) {
+        return { result: [], amount: 0 };
       }
+      movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
     }
 
     if (dto.actor) {
@@ -65,9 +64,11 @@ export class MoviesService {
         ),
       );
 
-      if (responseFromPerson) {
-        movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
+      if (!responseFromPerson) {
+        return { result: [], amount: 0 };
       }
+
+      movies.andWhere(`id in (:...ids)`, { ids: responseFromPerson });
     }
 
     if (dto.ids) {
@@ -83,15 +84,15 @@ export class MoviesService {
       movies.andWhere('"rating" >= :rating', { rating: dto.rating });
     }
 
-    if (dto.ratingcount) {
-      movies.andWhere('"ratingcount" >= :ratingcount', {
-        ratingcount: dto.ratingcount,
+    if (dto.ratingCount) {
+      movies.andWhere('"ratingCount" >= :ratingCount', {
+        ratingCount: dto.ratingCount,
       });
     }
 
     if (dto.partName) {
-      movies.andWhere('nameru like :nameru', {
-        nameru: '%' + dto.partName + '%',
+      movies.andWhere('"nameRu" like :nameRu', {
+        nameRu: '%' + dto.partName + '%',
       });
     }
 
@@ -146,14 +147,14 @@ export class MoviesService {
       pagination[0] * pagination[1],
       pagination[0] * pagination[1] + pagination[1] + 1,
     );
-    console.log(0);
+
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
     const result: MiniMovieDto[] = [];
     rawResult.forEach((movie) => {
       const tempMovie: MiniMovieDto = {
         id: undefined,
-        nameru: undefined,
-        nameen: undefined,
+        nameRu: undefined,
+        nameEn: undefined,
         poster: undefined,
         rating: undefined,
         year: undefined,
@@ -166,57 +167,42 @@ export class MoviesService {
       }
       result.push(tempMovie);
     });
-    console.log(1);
+
     // извлекаем ids результата для использования ниже в запросах к микросервисам
-    //TO DO сделать прверку на пустой result
+    //TODO сделать прверку на пустой result
     const resultIds = result.map((movie) => movie.id);
+
     // запрашиваем жанры для обогащения нашей поисковой выдачи
-    const genresMap: Map<number, string> = new Map(
+    const genresMap: Map<number, GenresDto> = new Map(
       await lastValueFrom(
         this.genresClient.send({ cmd: 'getGenreById' }, resultIds),
       ),
     );
-    /* return [
-    [41507, 'Ужас'],
-  [419709,'Комедия']
-]*/
-    console.log(2);
+
     // обогащаем результат жанрами
     result.forEach((value) => {
       value.genres = genresMap.get(value.id);
     });
-    console.log(3);
     return { result: result, amount: amountOfMovies };
   }
 
   async createMovie(dto: FullMovieDto) {
     console.log('Movies MS - Service - createMovie at', new Date());
-    /*
-    let shortDto: Movie;
-    for (const shortDtoElement in shortDto) {
-      const fieldName = Object.keys(shortDtoElement)[0];
-      shortDto[fieldName] = dto[fieldName];
-    }*/
-
-    /*    const shortDto = Object.create(Movie);
-    Object.entries(shortDto).forEach((value) => {
-      dto[value[0]] = value[1];
-    });*/
 
     //TODO как это можно сделать по человечески?
     const shortDto: Movie = {
       id: dto.id,
-      nameru: dto.nameru,
-      nameen: dto.nameen,
+      nameRu: dto.nameRu,
+      nameEn: dto.nameEn,
       type: dto.type,
       description: dto.description,
       country: dto.country,
       trailer: dto.trailer,
-      similarmovies: dto.similarmovies,
+      similarMovies: dto.similarMovies,
       year: dto.year,
       rating: dto.rating,
-      ratingcount: dto.ratingcount,
-      agerating: dto.agerating,
+      ratingCount: dto.ratingCount,
+      ageRating: dto.ageRating,
       poster: dto.poster,
       duration: dto.duration,
       slogan: dto.slogan,
@@ -225,7 +211,7 @@ export class MoviesService {
     const movie = await this.moviesRepository.save(shortDto);
     const errors = [];
     const genres = await lastValueFrom(
-      this.genresClient.emit('setGenresToMovie', {
+      this.genresClient.emit('addGenresToMovie', {
         movie_id: movie.id,
         genres: dto.genres,
       }),
@@ -248,6 +234,7 @@ export class MoviesService {
 
   async getMovieById(id: number): Promise<any> {
     console.log('Movies MS - Service - getMovieById at', new Date());
+    if (id == 50) return 100;
     const errors = [];
 
     const movie = await this.moviesRepository
@@ -268,7 +255,6 @@ export class MoviesService {
     ).catch((e) => {
       errors.push({ persons: e });
     });
-    console.log(persons);
 
     const fullMovie = Object.create(FullMovieDto);
     Object.entries(movie).forEach((value) => {
@@ -277,10 +263,10 @@ export class MoviesService {
 
     //заполняем similarMovies миниМувисами вместо ids
 
-    if (fullMovie.similarmovies && fullMovie.similarmovies.length) {
+    if (fullMovie.similarMovies && fullMovie.similarMovies.length) {
       const tempFilter = Object.create(MovieFilterDto);
-      tempFilter.ids = fullMovie.similarmovies;
-      fullMovie.similarmovies = (await this.getMovies(tempFilter)).result;
+      tempFilter.ids = fullMovie.similarMovies;
+      fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
     }
     // заполняем данными, полученными от микросервисов жанры/персоны
     if (genres) fullMovie.genres = genres;
@@ -299,8 +285,9 @@ export class MoviesService {
   async deleteMovie(id: number) {
     console.log('Movies MS - Service - createMovie at', new Date());
     const errors = [];
+
     await lastValueFrom(
-      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, id),
+      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
     ).catch((e) => errors.push({ genres: e }));
 
     await lastValueFrom(
@@ -329,6 +316,7 @@ export class MoviesService {
           movies: e,
         }),
       );
+
     return { result: result, errors: errors };
   }
 
@@ -338,17 +326,17 @@ export class MoviesService {
     const errors = [];
     const edit = await this.moviesRepository.createQueryBuilder().update().set({
       id: dto.id,
-      nameru: dto.nameru,
-      nameen: dto.nameen,
+      nameRu: dto.nameRu,
+      nameEn: dto.nameEn,
       type: dto.type,
       description: dto.description,
       country: dto.country,
       trailer: dto.trailer,
-      similarmovies: dto.similarmovies,
+      similarMovies: dto.similarMovies,
       year: dto.year,
       rating: dto.rating,
-      ratingcount: dto.ratingcount,
-      agerating: dto.agerating,
+      ratingCount: dto.ratingCount,
+      ageRating: dto.ageRating,
       poster: dto.poster,
       duration: dto.duration,
       slogan: dto.slogan,
