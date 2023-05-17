@@ -40,7 +40,6 @@ export class MoviesService {
         return { result: [], amount: 0 };
       }
       movies.andWhere(`id in (:...ids)`, { ids: responseFromGenres });
-      //rawGenresPersonsArray.push(temp);
     }
 
     if (dto.director) {
@@ -173,7 +172,7 @@ export class MoviesService {
     const resultIds = result.map((movie) => movie.id);
 
     // запрашиваем жанры для обогащения нашей поисковой выдачи
-    const genresMap: Map<number, GenresDto> = new Map(
+    const genresMap: Map<number, GenresDto[]> = new Map(
       await lastValueFrom(
         this.genresClient.send({ cmd: 'getGenreById' }, resultIds),
       ),
