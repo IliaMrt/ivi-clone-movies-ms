@@ -136,6 +136,9 @@ export class MoviesService {
     //получаем общее количество записей
     const amountOfMovies = rawListOfMovies.length;
 
+    //проверяем, что фильмов в выдаче больше нуля
+    if (!amountOfMovies) return { result: null, amount: amountOfMovies };
+
     //формируем результирующий массив с учётом пагинации, но без жанров и персон
     if (amountOfMovies < pagination[1]) {
       pagination[1] = amountOfMovies;
@@ -149,7 +152,7 @@ export class MoviesService {
     );
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
-    const result: MiniMovieDto[] = [];
+    const result: MiniMovieDto[] | null = [];
     rawResult.forEach((movie) => {
       const tempMovie: MiniMovieDto = {
         id: undefined,
@@ -169,7 +172,7 @@ export class MoviesService {
     });
 
     // извлекаем ids результата для использования ниже в запросах к микросервисам
-    //TODO сделать прверку на пустой result
+
     const resultIds = result.map((movie) => movie.id);
 
     // запрашиваем жанры для обогащения нашей поисковой выдачи
