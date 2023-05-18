@@ -18,7 +18,7 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
   await app.listen(port, () => {
-    console.log(`Genres MS started on ${port}.`);
+    console.log(`Movies MS started on ${port}.`);
     console.log(`Application variables:`);
     console.log(`RabbitMQ address: ${rmqUrl}`);
     console.log(`Database host: ${databaseHost}`);

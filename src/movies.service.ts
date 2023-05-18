@@ -27,14 +27,13 @@ export class MoviesService {
     dto: MovieFilterDto,
   ): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Service - getMovies at', new Date());
-
     const movies = await this.moviesRepository.createQueryBuilder();
 
-    if (dto.genre) {
+    if (dto.genres) {
       const responseFromGenres: any[] = await lastValueFrom(
         this.genresClient.send(
           { cmd: 'getMoviesByGenres' },
-          { genres: dto.genre.split(' ') },
+          { genres: dto.genres.split(' ') },
         ),
       );
       if (!responseFromGenres.length) {
@@ -99,7 +98,11 @@ export class MoviesService {
     if (dto.year) {
       const years = dto.year.split('-');
       if (years.length == 1) years[1] = years[0];
-      movies.andWhere('year >= :start', { start: years[0] });
+
+      // проверяем условие 1980 (если пришёл 1980 год, то ищем всё до 1980 года)
+      if (!(years[0] == years[1] && years[0] == '1980'))
+        movies.andWhere('year >= :start', { start: years[0] });
+
       if (years[1]) {
         movies.andWhere('year <= :end', { end: years[1] });
       }
@@ -132,14 +135,12 @@ export class MoviesService {
     }
 
     //получаем полный результат для того, чтобы получить количество записей
-
     const rawListOfMovies = await movies.getMany();
     //получаем общее количество записей
     const amountOfMovies = rawListOfMovies.length;
 
     //проверяем, что фильмов в выдаче больше нуля
     if (!amountOfMovies) return { result: null, amount: amountOfMovies };
-
     //формируем результирующий массив с учётом пагинации, но без жанров и персон
     if (amountOfMovies < pagination[1]) {
       pagination[1] = amountOfMovies;
@@ -151,7 +152,6 @@ export class MoviesService {
       pagination[0] * pagination[1],
       pagination[0] * pagination[1] + pagination[1] + 1,
     );
-
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
     const result: MiniMovieDto[] | null = [];
     rawResult.forEach((movie) => {
@@ -173,13 +173,14 @@ export class MoviesService {
     });
 
     // извлекаем ids результата для использования ниже в запросах к микросервисам
-
     const resultIds = result.map((movie) => movie.id);
-
     // запрашиваем жанры для обогащения нашей поисковой выдачи
     const genresMap: Map<number, GenresDto[]> = new Map(
       await lastValueFrom(
-        this.genresClient.send({ cmd: 'getGenreById' }, resultIds),
+        this.genresClient.send(
+          { cmd: 'getGenresByMoviesIds' },
+          { movies: resultIds },
+        ),
       ),
     );
 
@@ -237,13 +238,11 @@ export class MoviesService {
         },
       ),
     ).catch((e) => errors.push({ persons: e }));
-    console.log(`genres: ${genres}, persons: ${persons}`);
     return { movie: movie, errors: errors };
   }
 
   async getMovieById(id: number): Promise<any> {
     console.log('Movies MS - Service - getMovieById at', new Date());
-    if (id == 50) return 100;
     const errors = [];
 
     const movie = await this.moviesRepository
@@ -256,11 +255,16 @@ export class MoviesService {
       return { movie: {}, errors: [{ movie: 'Movie not found' }] };
 
     const genres = await lastValueFrom(
-      this.genresClient.send({ cmd: 'getGenreById' }, movie.id),
+      this.genresClient.send(
+        { cmd: 'getGenresByMoviesIds' },
+        { movies: [movie.id] },
+      ),
     ).catch((e) => errors.push({ genres: e }));
-
     const persons = await lastValueFrom(
-      this.personsClient.send({ cmd: 'getPersonsByMovieId' }, movie.id),
+      this.personsClient.send(
+        { cmd: 'getPersonsByMovieId' },
+        { movies: [movie.id] },
+      ),
     ).catch((e) => {
       errors.push({ persons: e });
     });
@@ -271,14 +275,13 @@ export class MoviesService {
     });
 
     //заполняем similarMovies миниМувисами вместо ids
-
     if (fullMovie.similarMovies && fullMovie.similarMovies.length) {
       const tempFilter = Object.create(MovieFilterDto);
       tempFilter.ids = fullMovie.similarMovies;
       fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
     }
     // заполняем данными, полученными от микросервисов жанры/персоны
-    if (genres) fullMovie.genres = genres;
+    if (genres) fullMovie.genres = genres[0][1];
     if (persons) {
       fullMovie.director = persons.director;
       fullMovie.actors = persons.actors;
@@ -308,7 +311,8 @@ export class MoviesService {
 
     if (result.affected == 0)
       errors.push({ movies: 'Movie with this number not found' });
-    if (errors) return { result: {}, errors: errors };
+
+    if (errors.length) return { result: {}, errors: errors };
 
     await lastValueFrom(
       this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
