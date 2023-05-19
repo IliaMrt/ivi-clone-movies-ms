@@ -10,8 +10,9 @@ import {
   databaseName,
   databasePassword,
   databasePort,
-  databaseUser, rmqUrl
-} from "./environment/variables";
+  databaseUser,
+  rmqUrl,
+} from './environment/variables';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import {
         name: 'PERSONS',
         transport: Transport.RMQ,
         options: {
-          urls: [rmqUrl],// [process.env.RABBIT_MQ_URL],
+          urls: [rmqUrl],
           queue: 'toPersonsMs',
           queueOptions: {
             durable: true,
@@ -31,7 +32,7 @@ import {
         name: 'FILES',
         transport: Transport.RMQ,
         options: {
-          urls:[rmqUrl],// [process.env.RABBIT_MQ_URL],
+          urls: [rmqUrl],
           queue: 'toFilesMs',
           queueOptions: {
             durable: false,
@@ -42,7 +43,7 @@ import {
         name: 'COMMENTS',
         transport: Transport.RMQ,
         options: {
-          urls: [rmqUrl],//[process.env.RABBIT_MQ_URL],
+          urls: [rmqUrl],
           queue: 'toCommentsMs',
           queueOptions: {
             durable: false,
@@ -53,7 +54,7 @@ import {
         name: 'AUTH',
         transport: Transport.RMQ,
         options: {
-          urls: [rmqUrl],//[process.env.RABBIT_MQ_URL],
+          urls: [rmqUrl],
           queue: 'AUTh',
           queueOptions: {
             durable: false,
@@ -64,7 +65,7 @@ import {
         name: 'GENRES',
         transport: Transport.RMQ,
         options: {
-          urls:[rmqUrl],// ['amqp://localhost:5672'], //[process.env.RABBIT_MQ_URL],
+          urls: [rmqUrl],
           queue: 'toGenresMs',
           queueOptions: {
             durable: false,

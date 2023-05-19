@@ -1,15 +1,9 @@
-import { MiniMovieDto } from "./mini-movie.dto";
-import { PersonsDto } from "./persons.dto";
-import { CountryDto } from "./country.dto";
-import { GenresDto } from "./genres.dto";
+import { CountryDto } from './country.dto';
 
-export class ShortMovieDto {
-
-
+export class MovieDto {
   id: number;
   nameRu: string;
   nameEn: string;
-  type: string;
   description: string;
   country: CountryDto[];
   trailer: string;

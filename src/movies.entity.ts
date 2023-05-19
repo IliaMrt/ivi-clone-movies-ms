@@ -11,8 +11,6 @@ export class Movie {
 
   @Column({ nullable: true, type: 'varchar', length: 255 })
   nameEn: string;
-  @Column({ nullable: true, type: 'varchar', length: 255 })
-  type: string;
   @Column({ nullable: true, type: 'text' })
   description: string;
 

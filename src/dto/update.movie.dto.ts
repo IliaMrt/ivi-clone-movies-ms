@@ -1,11 +1,9 @@
 import { PersonsDto } from './persons.dto';
-import { MiniMovieDto } from "./mini-movie.dto";
+import { MiniMovieDto } from './mini-movie.dto';
 
 export class UpdateMovieDto {
-
   nameRu: string;
   nameEn: string;
-  type: string;
   description: string;
   country: [];
   genres: [];
