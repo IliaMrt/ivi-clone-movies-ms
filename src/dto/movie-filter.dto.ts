@@ -1,10 +1,10 @@
 export class MovieFilterDto {
-  ids: number[];
-  readonly genre: string;
+  ids: number[] | string|string[];
+  readonly genres: string;
   readonly country: string; // короткие наименования стран из countriesList, разделитель "+"
   readonly year: string; //одно число XXXX - с года XXXX, два числа через дефис XXXX-YYYY - поиск в интервале
   readonly rating: number;
-  readonly ratingcount: number;
+  readonly ratingCount: number;
   readonly director: string;
   readonly actor: string;
   readonly sort: string;

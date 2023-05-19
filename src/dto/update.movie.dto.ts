@@ -1,8 +1,8 @@
 import { PersonsDto } from './persons.dto';
 import { MiniMovieDto } from "./mini-movie.dto";
 
-export class FullMovieDto {
-  id: number;
+export class UpdateMovieDto {
+
   nameRu: string;
   nameEn: string;
   type: string;

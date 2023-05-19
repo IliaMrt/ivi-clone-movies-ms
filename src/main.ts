@@ -5,7 +5,7 @@ import { databaseHost, port, rmqUrl } from './environment/variables';
 
 async function bootstrap() {
   const app = await NestFactory.create(MoviesModule);
-  const microservice = app.connectMicroservice({
+  app.connectMicroservice({
     transport: Transport.RMQ,
     options: {
       urls: [rmqUrl],
@@ -18,7 +18,7 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
   await app.listen(port, () => {
-    console.log(`Genres MS started on ${port}.`);
+    console.log(`Movies MS started on ${port}.`);
     console.log(`Application variables:`);
     console.log(`RabbitMQ address: ${rmqUrl}`);
     console.log(`Database host: ${databaseHost}`);

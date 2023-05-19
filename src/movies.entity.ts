@@ -1,68 +1,48 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
-// import { ApiProperty } from '@nestjs/swagger';
-import { CountryDto } from './dto/country.dto';
-import { PersonsDto } from './dto/persons.dto';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { MiniMovieDto } from './dto/mini-movie.dto';
 
-@Entity("ivi-movies")
+@Entity('movies')
 export class Movie {
-  @PrimaryColumn({ type: 'numeric' })
+  @PrimaryGeneratedColumn('increment')
   id: number;
+  //TODO nullable удалить из продакшена
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  'nameRu': string;
 
-  @Column({ type: 'varchar', length: 255 })
-  nameru: string;
-
-  @Column({ type: 'varchar', length: 255 })
-  nameen: string;
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  nameEn: string;
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   type: string;
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   description: string;
 
   @Column({ type: 'simple-array' })
-  country: CountryDto[];
+  country: string[]; // CountryDto[];
   // genres: genre[],
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   trailer: string;
 
-  @Column({ type: 'simple-array' })
-  similarmovies: number[];
+  @Column({ nullable: true, type: 'simple-array' })
+  similarMovies: number[] | MiniMovieDto[];
 
   @Column({ type: 'numeric' })
   year: number;
 
-  @Column({ type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric' })
   rating: number;
 
-  @Column({ type: 'numeric' })
-  ratingcount: number;
+  @Column({ nullable: true, type: 'numeric' })
+  ratingCount: number;
 
-  @Column({ type: 'numeric' })
-  agerating: number;
+  @Column({ nullable: true, type: 'numeric' })
+  ageRating: number;
 
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   poster: string;
-
-  @Column({ type: 'numeric' })
+  //TODO nullable удалить из продакшена
+  @Column({ nullable: true, type: 'numeric' })
   duration: number;
 
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   slogan: string;
-
-/*  @Column({ type: 'simple-array' })
-  director: PersonsDto[];
-
-  @Column({ type: 'simple-array' })
-  actors: PersonsDto[];
-
-  @Column({ type: 'simple-array' })
-  producer: PersonsDto[];
-
-  @Column({ type: 'simple-array' })
-  cinematographer: PersonsDto[];
-
-  @Column({ type: 'simple-array' })
-  screenwriter: PersonsDto[];
-
-  @Column({ type: 'simple-array' })
-  composer: PersonsDto[];*/
 }
