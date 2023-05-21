@@ -1,4 +1,4 @@
-import { CountryDto } from './country.dto';
+import { CountryDto } from '../countries/dto/country.dto';
 
 export class MovieDto {
   id: number;

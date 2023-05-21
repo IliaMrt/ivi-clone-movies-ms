@@ -13,6 +13,9 @@ import {
   databaseUser,
   rmqUrl,
 } from './environment/variables';
+import { CountriesModule } from './countries/countries.module';
+import { Country } from './countries/entity/country.entity';
+import { CountriesService } from "./countries/countries.service";
 
 @Module({
   imports: [
@@ -80,10 +83,11 @@ import {
       username: databaseUser,
       password: databasePassword.toString(),
       database: databaseName,
-      entities: [Movie],
-      synchronize: false,
+      entities: [Movie, Country],
+      synchronize: true,
     }),
-    TypeOrmModule.forFeature([Movie]),
+    TypeOrmModule.forFeature([Movie, Country]),
+    CountriesModule,
   ],
   controllers: [MoviesController],
   providers: [MoviesService],

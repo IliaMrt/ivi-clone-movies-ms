@@ -31,7 +31,10 @@ export class MoviesController {
     updateMovieDto: UpdateMovieDto;
   }) {
     console.log('Movies MS - Controller - editMovie at', new Date());
-    return await this.moviesService.updateMovie(input.movieId, input.updateMovieDto);
+    return await this.moviesService.updateMovie(
+      input.movieId,
+      input.updateMovieDto, //todo
+    );
   }
 
   @MessagePattern({ cmd: 'createMovie' })
@@ -46,5 +49,11 @@ export class MoviesController {
   async getMovieById(movieId: { movieId: number }): Promise<any> {
     console.log('Movies MS - Controller - getMovieById at', new Date());
     return await this.moviesService.getMovieById(movieId.movieId);
+  }
+
+  @MessagePattern({ cmd: 'getAllCountries' })
+  async getAllCountries(): Promise<any> {
+    console.log('Movies MS - Controller - getAllCountries at', new Date());
+    return await this.moviesService.getAllCountries();
   }
 }

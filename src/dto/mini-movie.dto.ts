@@ -1,4 +1,6 @@
-import { GenresDto } from "./genres.dto";
+import { GenresDto } from './genres.dto';
+import { Country } from "../countries/entity/country.entity";
+import { CountryDto } from "../countries/dto/country.dto";
 
 export class MiniMovieDto {
   id: number;
@@ -7,7 +9,7 @@ export class MiniMovieDto {
   poster: string;
   rating: number;
   year: number;
-  country: [];
+  country: CountryDto[];
   genres: GenresDto[];
   duration: number;
 }

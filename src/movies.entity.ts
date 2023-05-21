@@ -1,12 +1,19 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+  JoinColumn,
+} from 'typeorm';
 import { MiniMovieDto } from './dto/mini-movie.dto';
+import { Country } from './countries/entity/country.entity';
 
 @Entity('movies')
 export class Movie {
   @PrimaryGeneratedColumn('increment')
   id: number;
-  //TODO nullable удалить из продакшена
-  @Column({ nullable: true, type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   'nameRu': string;
 
   @Column({ nullable: true, type: 'varchar', length: 255 })
@@ -14,8 +21,8 @@ export class Movie {
   @Column({ nullable: true, type: 'text' })
   description: string;
 
-  @Column({ type: 'simple-array' })
-  country: string[]; // CountryDto[];
+  /*  @Column({ type: 'simple-array' })
+    country: string[]; // CountryDto[];*/
   // genres: genre[],
   @Column({ nullable: true, type: 'text' })
   trailer: string;
@@ -37,10 +44,18 @@ export class Movie {
 
   @Column({ nullable: true, type: 'text' })
   poster: string;
-  //TODO nullable удалить из продакшена
-  @Column({ nullable: true, type: 'numeric' })
+
+  @Column({ type: 'numeric' })
   duration: number;
 
   @Column({ nullable: true, type: 'text' })
   slogan: string;
+
+  @ManyToMany(() => Country, (country) => country.shortName)
+  @JoinTable({
+    name: 'movie_country',
+    joinColumn: { name: 'movie_id' },
+    inverseJoinColumn: { name: 'country_shortName' },
+  })
+  countries: Country[];
 }
