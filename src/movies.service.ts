@@ -126,12 +126,10 @@ export class MoviesService {
 
     movies.orderBy(order, 'ASC');
 
-    //если не пришла пагинация - выдаём первую страницу, 10 записей
-    const pagination: number[] = [0, 10];
-    if (dto.pagination) {
-      const temp: string[] = dto.pagination.split(':');
-      pagination[0] = parseInt(temp[0]);
-      pagination[1] = parseInt(temp[1]);
+    //если не пришла пагинация - выдаём первую страницу, 35 записей
+    const pagination = [1, 35]; //todo упростил функционал, теперь надо упростить код
+    if (dto.page) {
+      pagination[0] = dto.page;
     }
     //получаем полный результат для того, чтобы получить количество записей
     const rawListOfMovies = await movies.getMany();
@@ -145,13 +143,13 @@ export class MoviesService {
     //формируем результирующий массив с учётом пагинации, но без жанров и персон
     if (amountOfMovies < pagination[1]) {
       pagination[1] = amountOfMovies;
-    } else if (amountOfMovies - (pagination[0] + 1) * pagination[1] < 0) {
+    } else if (amountOfMovies - pagination[0] * pagination[1] < 0) {
       pagination[1] = amountOfMovies - pagination[0] * pagination[1];
     }
 
     const rawResult: Movie[] = rawListOfMovies.slice(
-      pagination[0] * pagination[1],
-      pagination[0] * pagination[1] + pagination[1] + 1,
+      (pagination[0] - 1) * pagination[1],
+      pagination[0] * pagination[1] + pagination[1],
     );
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
@@ -428,5 +426,12 @@ export class MoviesService {
   async getAllCountries() {
     console.log('Movies MS - Service - getAllCountries at', new Date());
     return await this.countriesService.getAllCountries();
+  }
+
+  async fillCountries() {
+    //todo warning
+    console.log('Movies MS - Service - fillCountries at', new Date());
+
+    return this.countriesService.createCountry();
   }
 }

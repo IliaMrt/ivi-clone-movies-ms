@@ -8,7 +8,6 @@ export class MovieFilterDto {
   readonly director: string;
   readonly actor: string;
   readonly sort: string;
-  readonly pagination: string; //два числа: номер страницы и количество записей на странице,разделитель ':',
-  // начинается с нуля
+  readonly page: number;
   readonly partName: string; //часть имени, любая последовательность символов
 }
