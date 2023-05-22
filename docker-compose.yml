@@ -15,7 +15,7 @@ services:
     build:
       context: movies
     env_file:
-      - movies/.env
+      - movies/.docker.env
     volumes:
       - ./movies:/app
       - /app/node_modules
@@ -32,7 +32,7 @@ services:
     container_name: postgres
     image: postgres:12
     env_file:
-      - ./movies/.env
+      - ./movies/.docker.env
     environment:
       PG_DATA: /var/lib/postgresql/12/main
     ports:

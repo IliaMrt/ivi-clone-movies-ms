@@ -19,12 +19,10 @@ export class CountriesService {
 
   async createCountry(/*createCountryMessageDto: CountryDto*/) /*: Promise<Country>*/ {
     console.log('Countries MS - Service - createCountry at', new Date());
-    let counter = 0;
     for (const country of CountriesList) {
       await this.countryRepository.save(country);
-      counter++;
     }
-    console.log(`${counter} countries created`);
+    // console.log(`${counter} countries created`);
     return;
     // return this.countryRepository.save(createCountryMessageDto);
   }
@@ -69,20 +67,20 @@ export class CountriesService {
         id: addCountriesToMovieDto.movieId,
       }))
     ) {
-      console.log(addCountriesToMovieDto);
+      // console.log(addCountriesToMovieDto);
       await this.movieRepository.save({
         id: addCountriesToMovieDto.movieId,
       });
     } else {
       //todo
-      console.log('Film is already exist');
+      // console.log('Film is already exist');
     }
 
     //Get movie
     const movie = await this.movieRepository.findOneBy({
       id: addCountriesToMovieDto.movieId,
     });
-    console.log(`movie: ${JSON.stringify(movie)}`);
+    // console.log(`movie: ${JSON.stringify(movie)}`);
 
     //Adding countries to movie
     movie.countries = [];
@@ -92,7 +90,7 @@ export class CountriesService {
       });
       movie.countries.push(country);
     }
-    console.log(`movie with countries: ${JSON.stringify(movie)}`);
+    // console.log(`movie with countries: ${JSON.stringify(movie)}`);
 
     return await this.movieRepository.save(movie);
   }
@@ -138,7 +136,7 @@ export class CountriesService {
     // where: { movie: { id: ArrayOverlap(getCountryByMovieDto.movieId) } },
     // id: Raw(``, {id: getCountryByMovieDto.movieId})
     // });
-    console.log(`ids: ${getCountryByMovieDto.movieId}`);
+    // console.log(`ids: ${getCountryByMovieDto.movieId}`);
     /* return await this.countryRepository
       .createQueryBuilder('country')
       .innerJoin('movie_country', 'movie', '"movie_id" IN (:...ids)', {
@@ -190,8 +188,8 @@ export class CountriesService {
         },
       },
     });*/
-    console.log('-----------');
-    console.log(`result: ${JSON.stringify(result)}`);
+    // console.log('-----------');
+    // console.log(`result: ${JSON.stringify(result)}`);
     // console.log(a.map((l) => l.shortName));
     // console.log(b.map((l) => l.id));
     return result;

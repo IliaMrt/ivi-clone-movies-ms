@@ -429,7 +429,6 @@ export class MoviesService {
   }
 
   async fillCountries() {
-    //todo warning
     console.log('Movies MS - Service - fillCountries at', new Date());
 
     return this.countriesService.createCountry();

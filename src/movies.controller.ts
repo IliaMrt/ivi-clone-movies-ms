@@ -57,7 +57,7 @@ export class MoviesController {
     return await this.moviesService.getAllCountries();
   }
 
-  @MessagePattern({ cmd: 'fillCountries' }) //todo warning
+  @MessagePattern({ cmd: 'fillCountries' })
   async fillCountries(): Promise<any> {
     console.log('Movies MS - Controller - fillCOuntries at', new Date());
     return await this.moviesService.fillCountries();
