@@ -22,7 +22,7 @@ import * as process from 'process';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.dev.env', //`.${process.env.NODE_ENV}.env`,
+      envFilePath: `.${process.env.NODE_ENV}.env`,
     }),
     ClientsModule.register([
       {

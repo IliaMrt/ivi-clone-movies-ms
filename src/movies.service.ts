@@ -44,7 +44,7 @@ export class MoviesService {
     if (dto.director) {
       const responseFromPerson: number[] = await lastValueFrom(
         this.personsClient.send(
-          { cmd: 'getIdsByDirector' },
+          { cmd: 'getIdsByPerson' },
           { role: 'director', name: dto.director },
         ),
       );
@@ -58,7 +58,7 @@ export class MoviesService {
     if (dto.actor) {
       const responseFromPerson = await lastValueFrom(
         this.personsClient.send(
-          { cmd: 'getIdsByActor' },
+          { cmd: 'getIdsByPerson' },
           { role: 'actor', name: dto.actor },
         ),
       );
