@@ -109,6 +109,12 @@ export class MoviesService {
       }
     }
 
+    if (dto.country) {
+      const countries=await this.countriesService
+        .getMoviesByCountries({countries:dto.country.split(' ')})
+      movies.andWhere(`id in (:...ids)`, { ids: countries });
+    }
+
     /* if (dto.country) {
       const temp = dto.country.split(' ');
       const countries = [];
