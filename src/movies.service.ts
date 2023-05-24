@@ -353,28 +353,27 @@ export class MoviesService {
   async updateMovie(movieId: number, updateMovieDto: UpdateMovieDto) {
     console.log('Movies MS - Service - editMovie at', new Date());
     const errors = [];
-    const edit = await this.moviesRepository.createQueryBuilder().update().set({
+
+    //подготовка информации для записи в базу фильмов
+    const toMovieBaseUpdate = {
+      ...updateMovieDto,
       id: movieId,
-      nameRu: updateMovieDto.nameRu,
-      nameEn: updateMovieDto.nameEn,
-      description: updateMovieDto.description,
-      // country: updateMovieDto.country,
-      trailer: updateMovieDto.trailer,
-      similarMovies: updateMovieDto.similarMovies,
-      year: updateMovieDto.year,
-      rating: updateMovieDto.rating,
-      ratingCount: updateMovieDto.ratingCount,
-      ageRating: updateMovieDto.ageRating,
-      poster: updateMovieDto.poster,
-      duration: updateMovieDto.duration,
-      slogan: updateMovieDto.slogan,
-    });
+    };
+    delete toMovieBaseUpdate.countries;
+    delete toMovieBaseUpdate.genres;
+
+    //запись информации в базу фильмов
+    const edit = await this.moviesRepository
+      .createQueryBuilder()
+      .update()
+      .set(toMovieBaseUpdate);
     await lastValueFrom(
       this.genresClient.send(
         { cmd: 'addGenresToMovie' },
         { movieId: movieId, genres: updateMovieDto.genres },
       ),
     ).catch((e) => errors.push({ genres: e }));
+
     //todo скорее всего здесь надо сделать другой метод.. надо проверить
     await this.countriesService.addCountriesToMovie({
       movieId: movieId,
