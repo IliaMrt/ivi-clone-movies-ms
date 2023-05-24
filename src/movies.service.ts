@@ -28,7 +28,8 @@ export class MoviesService {
     dto: MovieFilterDto,
   ): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Service - getMovies at', new Date());
-    const movies = await this.moviesRepository.createQueryBuilder();
+    const movies = await this.moviesRepository.createQueryBuilder('movies');
+
     if (dto.genres) {
       const responseFromGenres: any[] = await lastValueFrom(
         this.genresClient.send(
@@ -110,23 +111,12 @@ export class MoviesService {
     }
 
     if (dto.country) {
-      const countries=await this.countriesService
-        .getMoviesByCountries({countries:dto.country.split(' ')})
-      movies.andWhere(`id in (:...ids)`, { ids: countries });
+      const countries = dto.country.split(' ');
+      await movies
+        .leftJoin('movies.countries', 'c')
+        .andWhere('c.shortName in (:...countries)', { countries: countries })
+        .getMany();
     }
-
-    /* if (dto.country) {
-      const temp = dto.country.split(' ');
-      const countries = [];
-      temp.forEach((c) =>
-        // countries.push({ name: CountriesList.get(c).nameRu }),
-        countries.push(CountriesList.get(c).nameRu),
-      );
-
-      movies.andWhere(`string_to_array(country,',')&&:c::text[]`, {
-        c: countries,
-      });
-    }*/
 
     //если не пришёл порядок сортировки - сортируем по id
     const order = dto.sort || 'id';
@@ -156,7 +146,7 @@ export class MoviesService {
 
     const rawResult: Movie[] = rawListOfMovies.slice(
       (pagination[0] - 1) * pagination[1],
-      (pagination[0] * pagination[1]-1) + pagination[1],
+      pagination[0] * pagination[1] - 1 + pagination[1],
     );
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
@@ -227,7 +217,7 @@ export class MoviesService {
     const movie = await this.moviesRepository.save(newMovie);
 
     const errors = [];
-    const genres = await lastValueFrom(
+    await lastValueFrom(
       this.genresClient.send(
         { cmd: 'addGenresToMovie' },
         {
@@ -348,14 +338,14 @@ export class MoviesService {
       this.personsClient.send({ cmd: 'deleteMovieFromPersons' }, id),
     ).catch((e) => errors.push({ persons: e }));
 */
-    /* await lastValueFrom(
-       this.commentsClient.send(
-         { cmd: 'deleteCommentsFromEssence' },
-         {
-           dto: { essenceTable: 'movies', essenceId: id },
-         },
-       ),
-     ).catch((e) => errors.push({ comments: e }));*/ //todo warning
+    await lastValueFrom(
+      this.commentsClient.send(
+        { cmd: 'deleteCommentsFromEssence' },
+        {
+          dto: { essenceTable: 'movies', essenceId: id },
+        },
+      ),
+    ).catch((e) => errors.push({ comments: e }));
 
     /*  await lastValueFrom(
       this.filesClient.send(
