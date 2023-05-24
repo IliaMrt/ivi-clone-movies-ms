@@ -121,7 +121,7 @@ export class MoviesService {
     //если не пришёл порядок сортировки - сортируем по id
     const order = dto.sort || 'id';
 
-    movies.orderBy(order, 'ASC');
+    movies.orderBy('movies.' + order, 'ASC');
 
     //если не пришла пагинация - выдаём первую страницу, 35 записей
     const pagination = [1, 35]; //todo упростил функционал, теперь надо упростить код
@@ -196,23 +196,7 @@ export class MoviesService {
 
   async createMovie(dto: FullMovieDto) {
     console.log('Movies MS - Service - createMovie at', new Date());
-    //TODO как это можно сделать по человечески?
-    const newMovie: Movie = {
-      id: dto.id,
-      nameRu: dto.nameRu,
-      nameEn: dto.nameEn,
-      description: dto.description,
-      countries: dto.countries,
-      trailer: dto.trailer,
-      similarMovies: dto.similarMovies,
-      year: dto.year,
-      rating: dto.rating,
-      ratingCount: dto.ratingCount,
-      ageRating: dto.ageRating,
-      poster: dto.poster,
-      duration: dto.duration,
-      slogan: dto.slogan,
-    };
+    const newMovie: Movie = { ...dto };
 
     const movie = await this.moviesRepository.save(newMovie);
 
