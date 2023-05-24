@@ -118,13 +118,20 @@ export class MoviesService {
         .getMany();
     }
 
-    //если не пришёл порядок сортировки - сортируем по id
-    const order = dto.sort || 'id';
+    //если не пришло направление сортировки - устанавливаем по id
+    const sort = dto.sort || 'id';
 
-    movies.orderBy('movies.' + order, 'ASC');
+    //определяем направление сортировки
+    const order =
+      ['rating', 'ratingCount'].findIndex((o) => o == dto.sort) + 1
+        ? 'DESC'
+        : 'ASC';
+
+    //сортируем
+    movies.orderBy('movies.' + sort, order);
 
     //если не пришла пагинация - выдаём первую страницу, 35 записей
-    const pagination = [1, 35]; //todo упростил функционал, теперь надо упростить код
+    const pagination = [1, 35];
     if (dto.page) {
       pagination[0] = dto.page;
     }
