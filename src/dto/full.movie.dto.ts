@@ -6,7 +6,7 @@ export class FullMovieDto {
   nameRu: string;
   nameEn: string;
   description: string;
-  country: [];
+  countries: [];
   genres: [];
   trailer: string;
   similarMovies: number[] | MiniMovieDto[];

@@ -33,7 +33,7 @@ export class MoviesService {
       const responseFromGenres: any[] = await lastValueFrom(
         this.genresClient.send(
           { cmd: 'getMoviesByGenres' },
-          { genres: dto.genres.split(' ') },
+          { genres: dto.genres.split('+') },
         ),
       );
       if (!responseFromGenres.length) {
@@ -156,7 +156,7 @@ export class MoviesService {
 
     const rawResult: Movie[] = rawListOfMovies.slice(
       (pagination[0] - 1) * pagination[1],
-      pagination[0] * pagination[1] + pagination[1],
+      (pagination[0] * pagination[1]-1) + pagination[1],
     );
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
@@ -207,12 +207,12 @@ export class MoviesService {
   async createMovie(dto: FullMovieDto) {
     console.log('Movies MS - Service - createMovie at', new Date());
     //TODO как это можно сделать по человечески?
-    const shortDto: Movie = {
+    const newMovie: Movie = {
       id: dto.id,
       nameRu: dto.nameRu,
       nameEn: dto.nameEn,
       description: dto.description,
-      countries: dto.country,
+      countries: dto.countries,
       trailer: dto.trailer,
       similarMovies: dto.similarMovies,
       year: dto.year,
@@ -224,7 +224,7 @@ export class MoviesService {
       slogan: dto.slogan,
     };
 
-    const movie = await this.moviesRepository.save(shortDto);
+    const movie = await this.moviesRepository.save(newMovie);
 
     const errors = [];
     const genres = await lastValueFrom(
@@ -255,7 +255,7 @@ export class MoviesService {
 
     await this.countriesService.addCountriesToMovie({
       movieId: movie.id,
-      countries: dto.country,
+      countries: dto.countries,
     });
 
     return { movie: movie, errors: errors };
