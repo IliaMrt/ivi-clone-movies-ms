@@ -196,7 +196,7 @@ export class MoviesService {
       const countries = await this.countriesService.getCountriesByMovie({
         movieId: [movie.id],
       });
-      movie.country = countries[1];
+      movie.countries = countries[1];
     }
 
     return { result: result, amount: amountOfMovies };

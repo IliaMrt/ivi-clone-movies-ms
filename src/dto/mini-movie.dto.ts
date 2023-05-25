@@ -9,7 +9,7 @@ export class MiniMovieDto {
     this.poster = undefined;
     this.rating = undefined;
     this.year = undefined;
-    this.country = undefined;
+    this.countries = undefined;
     this.genres = undefined;
     this.duration = undefined;
   }
@@ -19,7 +19,7 @@ export class MiniMovieDto {
   poster: string;
   rating: number;
   year: number;
-  country: CountryDto[];
+  countries: CountryDto[];
   genres: GenresDto[];
   duration: number;
 }
