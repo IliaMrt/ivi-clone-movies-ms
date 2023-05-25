@@ -10,6 +10,7 @@ import { MiniMovieDto } from './dto/mini-movie.dto';
 import { UpdateMovieDto } from './dto/update.movie.dto';
 import { CountriesService } from './countries/countries.service';
 import { GenresDto } from './dto/genres.dto';
+import { MovieDto } from './dto/movie.dto';
 
 @Injectable()
 export class MoviesService {
@@ -99,11 +100,19 @@ export class MoviesService {
 
     if (dto.year) {
       const years = dto.year.split('-');
-      if (years.length == 1) years[1] = years[0];
 
-      // проверяем условие 1980 (если пришёл 1980 год, то ищем всё до 1980 года)
-      if (!(years[0] == years[1] && years[0] == '1980'))
-        movies.andWhere('year >= :start', { start: years[0] });
+      // проверяем условие 1980 (если пришёл 1980 год, то ищем всё до 1980 года включительно)
+
+      if (dto.year == '1980') {
+        movies.andWhere('year <= :start', { start: years[0] });
+      } else {
+        if (years.length == 1) years[1] = years[0];
+
+        movies.andWhere('year >= :start and year <= :end', {
+          start: years[0],
+          end: years[1],
+        });
+      }
 
       if (years[1]) {
         movies.andWhere('year <= :end', { end: years[1] });
@@ -158,18 +167,10 @@ export class MoviesService {
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
     const result: MiniMovieDto[] | null = [];
+
     rawResult.forEach((movie) => {
-      const tempMovie: MiniMovieDto = {
-        id: undefined,
-        nameRu: undefined,
-        nameEn: undefined,
-        poster: undefined,
-        rating: undefined,
-        year: undefined,
-        country: undefined,
-        genres: undefined,
-        duration: undefined,
-      };
+      //это работает благодаря наличию конструктора класса
+      const tempMovie = new MiniMovieDto();
       for (const tempMovieKey in tempMovie) {
         tempMovie[tempMovieKey] = movie[tempMovieKey];
       }
@@ -189,7 +190,7 @@ export class MoviesService {
     );
 
     // обогащаем результат жанрами и странами
-    // todo передалать страны и жанры на получение массива от сервиса
+    // todo передалать страныт на получение массива от сервиса
     for (const movie of result) {
       movie.genres = genresMap.get(movie.id);
       const countries = await this.countriesService.getCountriesByMovie({

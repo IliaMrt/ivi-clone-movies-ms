@@ -1,8 +1,18 @@
 import { GenresDto } from './genres.dto';
-import { Country } from "../countries/entity/country.entity";
-import { CountryDto } from "../countries/dto/country.dto";
+import { CountryDto } from '../countries/dto/country.dto';
 
 export class MiniMovieDto {
+  constructor() {
+    this.id = undefined;
+    this.nameRu = undefined;
+    this.nameEn = undefined;
+    this.poster = undefined;
+    this.rating = undefined;
+    this.year = undefined;
+    this.country = undefined;
+    this.genres = undefined;
+    this.duration = undefined;
+  }
   id: number;
   nameRu: string;
   nameEn: string;
