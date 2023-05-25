@@ -162,7 +162,7 @@ export class MoviesService {
 
     const rawResult: Movie[] = rawListOfMovies.slice(
       (pagination[0] - 1) * pagination[1],
-      pagination[0] * pagination[1] - 1 + pagination[1],
+      (pagination[0] - 1) * pagination[1] + pagination[1],
     );
 
     //преобразуем полный список в минимувис для выдачи, пока без жанров и персон
