@@ -98,12 +98,12 @@ export class MoviesService {
       });
     }
 
-    if (dto.year) {
-      const years = dto.year.split('-');
+    if (dto.years) {
+      const years = dto.years.split('-');
 
       // проверяем условие 1980 (если пришёл 1980 год, то ищем всё до 1980 года включительно)
 
-      if (dto.year == '1980') {
+      if (dto.years == '1980') {
         movies.andWhere('year <= :start', { start: years[0] });
       } else {
         if (years.length == 1) years[1] = years[0];
@@ -119,8 +119,8 @@ export class MoviesService {
       }
     }
 
-    if (dto.country) {
-      const countries = dto.country.split(' ');
+    if (dto.countries) {
+      const countries = dto.countries.split(' ');
       await movies
         .leftJoin('movies.countries', 'c')
         .andWhere('c.shortName in (:...countries)', { countries: countries })
