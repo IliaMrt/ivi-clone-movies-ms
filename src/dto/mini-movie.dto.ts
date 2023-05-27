@@ -8,6 +8,7 @@ export class MiniMovieDto {
     this.nameEn = undefined;
     this.poster = undefined;
     this.rating = undefined;
+    this.ratingCount = undefined;
     this.year = undefined;
     this.countries = undefined;
     this.genres = undefined;
@@ -18,6 +19,7 @@ export class MiniMovieDto {
   nameEn: string;
   poster: string;
   rating: number;
+  ratingCount: number;
   year: number;
   countries: CountryDto[];
   genres: GenresDto[];

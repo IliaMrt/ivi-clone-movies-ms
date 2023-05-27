@@ -5,14 +5,6 @@ import { MoviesController } from './movies.controller';
 import { Movie } from './movies.entity';
 import { MoviesService } from './movies.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-/*import {
-  databaseHost,
-  databaseName,
-  databasePassword,
-  databasePort,
-  databaseUser,
-  rmqUrl,
-} from './environment/variables';*/
 import { CountriesModule } from './countries/countries.module';
 import { Country } from './countries/entity/country.entity';
 // import { CountriesService } from './countries/countries.service';
