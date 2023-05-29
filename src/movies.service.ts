@@ -127,7 +127,7 @@ export class MoviesService {
     }
 
     //если не пришло направление сортировки - устанавливаем по id
-    const sort = dto.sort || 'id';
+    const sort = dto.sort || 'rating';
 
     //определяем направление сортировки
     const order =
