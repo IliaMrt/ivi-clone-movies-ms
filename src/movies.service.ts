@@ -47,8 +47,8 @@ export class MoviesService {
     if (dto.director) {
       const responseFromPerson: number[] = await lastValueFrom(
         this.personsClient.send(
-          { cmd: 'getIdsByPerson' },
-          { role: 'director', name: dto.director },
+          { cmd: 'getMoviesByDirector' },
+          { personId: dto.director },
         ),
       );
 
@@ -61,12 +61,11 @@ export class MoviesService {
     if (dto.actor) {
       const responseFromPerson = await lastValueFrom(
         this.personsClient.send(
-          { cmd: 'getIdsByPerson' },
-          { role: 'actor', name: dto.actor },
+          { cmd: 'getMoviesByActor' },
+          { personId: dto.actor },
         ),
       );
-
-      if (!responseFromPerson) {
+      if (!responseFromPerson.length) {
         return { result: null, amount: 0 };
       }
 
@@ -219,21 +218,20 @@ export class MoviesService {
       ),
     ).catch((e) => errors.push({ genres: e }));
 
-    /*   const persons = await lastValueFrom(
-         this.personsClient.send(
-           { cmd: 'setPersonsToMovie' },
-           {
-             id: movie.id,
-             director: dto.director,
-             actors: dto.actors,
-             producer: dto.producer,
-             cinematographer: dto.cinematographer,
-             screenwriter: dto.screenwriter,
-             composer: dto.composer,
-           },
-         ),
-       ).catch((e) => errors.push({ persons: e }));
-   */
+    const persons = await lastValueFrom(
+      this.personsClient.send(
+        { cmd: 'addPersonsToMovie' },
+        {
+          movieId: movie.id,
+          director: dto.director,
+          actors: dto.actors,
+          producer: dto.producer,
+          editor: dto.editor,
+          operator: dto.operator,
+          composer: dto.composer,
+        },
+      ),
+    ).catch((e) => errors.push({ persons: e }));
 
     await this.countriesService.addCountriesToMovie({
       movieId: movie.id,
@@ -263,14 +261,11 @@ export class MoviesService {
       ),
     ).catch((e) => errors.push({ genres: e }));
 
-    /*  const persons = await lastValueFrom(
-        this.personsClient.send(
-          { cmd: 'getPersonsByMovieId' },
-          { movies: [movie.id] },
-        ),
-      ).catch((e) => {
-        errors.push({ persons: e });
-      });*/
+    const persons = await lastValueFrom(
+      this.personsClient.send({ cmd: 'getMoviePersons' }, movie.id),
+    ).catch((e) => {
+      errors.push({ persons: e });
+    });
 
     //todo посмотреть на свежую голову, как оптимизировать этот участок
     const countries = await this.countriesService.getCountriesByMovie({
@@ -291,14 +286,14 @@ export class MoviesService {
     // заполняем данными, полученными от микросервисов жанры/персоны и странами
     if (genres) fullMovie.genres = genres[0][1];
     if (countries) fullMovie.countries = countries[1];
-    /* if (persons) {todo включить, когда будут  персоны
+    if (persons) {
       fullMovie.director = persons.director;
       fullMovie.actors = persons.actors;
       fullMovie.producer = persons.producer;
-      fullMovie.cinematographer = persons.cinematographer;
-      fullMovie.screenwriter = persons.screenwriter;
+      fullMovie.operator = persons.operator;
+      fullMovie.editor = persons.editor;
       fullMovie.composer = persons.composer;
-    }*/
+    }
 
     return { movie: fullMovie, errors: errors };
   }
@@ -324,15 +319,16 @@ export class MoviesService {
     await lastValueFrom(
       this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
     ).catch((e) => errors.push({ genres: e }));
-    /* todo включить когда будут персоны
 
     await lastValueFrom(
-      this.personsClient.send({ cmd: 'deleteMovieFromPersons' }, id),
+      this.personsClient.send(
+        { cmd: 'deleteMovieFromPersons' },
+        { movieId: id },
+      ),
     ).catch((e) => errors.push({ persons: e }));
-*/
     await lastValueFrom(
       this.commentsClient.send(
-        { cmd: 'deleteCommentsFromEssence' },
+        { cmd: 'deleteCommentsFromPersons' },
         {
           dto: { essenceTable: 'movies', essenceId: id },
         },
@@ -362,6 +358,12 @@ export class MoviesService {
     };
     delete toMovieBaseUpdate.countries;
     delete toMovieBaseUpdate.genres;
+    delete toMovieBaseUpdate.actors;
+    delete toMovieBaseUpdate.producer;
+    delete toMovieBaseUpdate.director;
+    delete toMovieBaseUpdate.editor;
+    delete toMovieBaseUpdate.operator;
+    delete toMovieBaseUpdate.composer;
 
     //запись информации в базу фильмов
     const edit = await this.moviesRepository
@@ -380,6 +382,21 @@ export class MoviesService {
       movieId: movieId,
       countries: updateMovieDto.countries,
     });
+
+    const persons = await lastValueFrom(
+      this.personsClient.send(
+        { cmd: 'addPersonsToMovie' },
+        {
+          movieId: movieId,
+          director: updateMovieDto.director,
+          actors: updateMovieDto.actors,
+          producer: updateMovieDto.producer,
+          editor: updateMovieDto.editor,
+          operator: updateMovieDto.operator,
+          composer: updateMovieDto.composer,
+        },
+      ),
+    ).catch((e) => errors.push({ persons: e }));
     /*
         await lastValueFrom(
           this.personsClient.send(

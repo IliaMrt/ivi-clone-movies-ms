@@ -19,8 +19,8 @@ export class FullMovieDto {
   slogan: string;
   director: PersonsDto[];
   actors: PersonsDto[];
-  producer: PersonsDto[];
-  cinematographer: PersonsDto[];
-  screenwriter: PersonsDto[];
+  producer: number[];
+  editor: PersonsDto[];
+  operator: PersonsDto[];
   composer: PersonsDto[];
 }

@@ -24,7 +24,7 @@ import * as process from 'process';
           urls: [process.env.RMQ_URL],
           queue: 'toPersonsMs',
           queueOptions: {
-            durable: true,
+            durable: false,
           },
         },
       },

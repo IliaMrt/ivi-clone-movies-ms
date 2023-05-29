@@ -19,7 +19,7 @@ export class UpdateMovieDto {
   director: PersonsDto[];
   actors: PersonsDto[];
   producer: PersonsDto[];
-  cinematographer: PersonsDto[];
-  screenwriter: PersonsDto[];
+  operator: PersonsDto[];
+  editor: PersonsDto[];
   composer: PersonsDto[];
 }
