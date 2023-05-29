@@ -82,7 +82,7 @@ export class MoviesService {
     }
 
     if (dto.rating) {
-      movies.andWhere('"rating" >= :rating', { rating: dto.rating });
+      movies.andWhere('"rating" >= :rating', { rating: dto.rating*1000 });
     }
 
     if (dto.ratingCount) {
@@ -131,7 +131,7 @@ export class MoviesService {
 
     //определяем направление сортировки
     const order =
-      ['rating', 'ratingCount'].findIndex((o) => o == dto.sort) + 1
+      ['rating', 'ratingCount', 'year'].findIndex((o) => o == dto.sort) + 1
         ? 'DESC'
         : 'ASC';
 
