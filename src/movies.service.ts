@@ -82,12 +82,12 @@ export class MoviesService {
     }
 
     if (dto.rating) {
-      movies.andWhere('"rating" >= :rating', { rating: dto.rating*1000 });
+      movies.andWhere('"rating" >= :rating', { rating: dto.rating });
     }
 
     if (dto.ratingCount) {
       movies.andWhere('"ratingCount" >= :ratingCount', {
-        ratingCount: dto.ratingCount,
+        ratingCount: dto.ratingCount*1000,
       });
     }
 

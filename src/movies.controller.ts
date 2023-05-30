@@ -13,7 +13,7 @@ export class MoviesController {
 
   @MessagePattern({ cmd: 'getMovies' })
   async getMovies(dto: {
-    movieFilterDto: MovieFilterDto;
+    movieFilterDto: MovieFilterDto | null;
   }): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Controller - getMovies at', new Date());
     return await this.moviesService.getMovies(dto.movieFilterDto);
