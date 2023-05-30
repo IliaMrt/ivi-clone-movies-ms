@@ -25,6 +25,10 @@ export class MoviesService {
     private countriesService: CountriesService,
   ) {}
 
+  async getMoviesRepository() {
+    return this.moviesRepository;
+  }
+
   async getMovies(
     dto: MovieFilterDto,
   ): Promise<{ result: MiniMovieDto[]; amount: number }> {
@@ -87,7 +91,7 @@ export class MoviesService {
 
     if (dto.ratingCount) {
       movies.andWhere('"ratingCount" >= :ratingCount', {
-        ratingCount: dto.ratingCount*1000,
+        ratingCount: dto.ratingCount * 1000,
       });
     }
 
@@ -245,11 +249,15 @@ export class MoviesService {
     console.log('Movies MS - Service - getMovieById at', new Date());
     const errors = [];
 
-    const movie = await this.moviesRepository
+    /*    const movie = await this.moviesRepository
       .findOne({ where: { id: id } })
       .catch((e) => {
         return e;
-      });
+      });*/
+
+    const movie = await this.moviesRepository
+      .createQueryBuilder()
+      .where(`id=:id`, { id: id }).execute();
 
     if (movie === null)
       return { movie: {}, errors: [{ movie: 'Movie not found' }] };
