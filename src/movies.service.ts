@@ -11,6 +11,7 @@ import { UpdateMovieDto } from './dto/update.movie.dto';
 import { CountriesService } from './countries/countries.service';
 import { GenresDto } from './dto/genres.dto';
 import { MovieDto } from './dto/movie.dto';
+import { FullMoviePersonsDto } from './dto/full.movie.persons.dto';
 
 @Injectable()
 export class MoviesService {
@@ -135,7 +136,7 @@ export class MoviesService {
 
     //определяем направление сортировки
     const order =
-      ['rating', 'ratingCount', 'year'].findIndex((o) => o == dto.sort) + 1
+      ['rating', 'ratingCount', 'year'].findIndex((o) => o == sort) + 1
         ? 'DESC'
         : 'ASC';
 
@@ -257,7 +258,8 @@ export class MoviesService {
 
     const movie = await this.moviesRepository
       .createQueryBuilder()
-      .where(`id=:id`, { id: id }).execute();
+      .where(`id=:id`, { id: id })
+      .getOne();
 
     if (movie === null)
       return { movie: {}, errors: [{ movie: 'Movie not found' }] };
@@ -280,7 +282,7 @@ export class MoviesService {
       movieId: [id],
     });
 
-    const fullMovie = Object.create(FullMovieDto);
+    let fullMovie = Object.create(FullMovieDto);
     Object.entries(movie).forEach((value) => {
       fullMovie[value[0]] = value[1];
     });
@@ -292,16 +294,13 @@ export class MoviesService {
       fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
     }
     // заполняем данными, полученными от микросервисов жанры/персоны и странами
-    if (genres) fullMovie.genres = genres[0][1];
-    if (countries) fullMovie.countries = countries[1];
-    if (persons) {
-      fullMovie.director = persons.director;
-      fullMovie.actors = persons.actors;
-      fullMovie.producer = persons.producer;
-      fullMovie.operator = persons.operator;
-      fullMovie.editor = persons.editor;
-      fullMovie.composer = persons.composer;
-    }
+    //todo при пустых странах/жанрах - ошибка. но их не должно быть пустых. добавить проверку
+    fullMovie = Object.assign(
+      fullMovie,
+      new FullMoviePersonsDto(persons),
+      { genres: genres[0][1] },
+      { countries: countries[1] },
+    );
 
     return { movie: fullMovie, errors: errors };
   }

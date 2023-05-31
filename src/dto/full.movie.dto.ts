@@ -2,6 +2,7 @@ import { PersonsDto } from './persons.dto';
 import { MiniMovieDto } from './mini-movie.dto';
 
 export class FullMovieDto {
+
   id: number;
   nameRu: string;
   nameEn: string;
@@ -19,7 +20,7 @@ export class FullMovieDto {
   slogan: string;
   director: PersonsDto[];
   actors: PersonsDto[];
-  producer: number[];
+  producer: PersonsDto[];
   editor: PersonsDto[];
   operator: PersonsDto[];
   composer: PersonsDto[];
