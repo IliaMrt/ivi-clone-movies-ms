@@ -46,7 +46,7 @@ export class MoviesService {
     return await lastValueFrom(
       this.personsClient.send(
         { cmd: `getMoviesBy${filmRole}` },
-        { personId: dto.director },
+        { personId: filmRole == 'Actor' ? dto.actor : dto.director },
       ),
     );
   }
@@ -179,7 +179,7 @@ export class MoviesService {
     //формируем результирующий массив с учётом пагинации, но без жанров и персон
     if (amountOfMovies < pagination[1]) {
       pagination[1] = amountOfMovies;
-    } else if (amountOfMovies - (pagination[0]-1) * pagination[1] < 0) {
+    } else if (amountOfMovies - (pagination[0] - 1) * pagination[1] < 0) {
       pagination[1] = amountOfMovies - pagination[0] * pagination[1];
     }
 
