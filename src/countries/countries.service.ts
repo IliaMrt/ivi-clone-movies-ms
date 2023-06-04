@@ -26,7 +26,9 @@ export class CountriesService {
     return;
     // return this.countryRepository.save(createCountryMessageDto);
   }
-
+  async getCountriesRepository() {
+    return this.countryRepository;
+  }
   async getAllCountries(): Promise<Country[]> {
     console.log('Countries MS - Service - getAllCountries at', new Date());
     return this.countryRepository.find();

@@ -30,6 +30,38 @@ export class MoviesService {
     return this.moviesRepository;
   }
 
+  async getMoviesByGenresMS(dto: MovieFilterDto): Promise<any[]> {
+    return await lastValueFrom(
+      this.genresClient.send(
+        { cmd: 'getMoviesByGenres' },
+        { genres: dto.genres.split('+') },
+      ),
+    );
+  }
+
+  async getMoviesByPersonsMS(
+    dto: MovieFilterDto,
+    filmRole: string,
+  ): Promise<number[]> {
+    return await lastValueFrom(
+      this.personsClient.send(
+        { cmd: `getMoviesBy${filmRole}` },
+        { personId: dto.director },
+      ),
+    );
+  }
+
+  async getGenresByMoviesIds(
+    resultIds: number[],
+  ) /*: Promise<[number, GenresDto[]]> */ {
+    return await lastValueFrom(
+      this.genresClient.send(
+        { cmd: 'getGenresByMoviesIds' },
+        { movies: resultIds },
+      ),
+    );
+  }
+
   async getMovies(
     dto: MovieFilterDto,
   ): Promise<{ result: MiniMovieDto[]; amount: number }> {
@@ -37,12 +69,7 @@ export class MoviesService {
     const movies = await this.moviesRepository.createQueryBuilder('movies');
 
     if (dto.genres) {
-      const responseFromGenres: any[] = await lastValueFrom(
-        this.genresClient.send(
-          { cmd: 'getMoviesByGenres' },
-          { genres: dto.genres.split('+') },
-        ),
-      );
+      const responseFromGenres: any[] = await this.getMoviesByGenresMS(dto);
       if (!responseFromGenres.length) {
         return { result: [], amount: 0 };
       }
@@ -50,13 +77,10 @@ export class MoviesService {
     }
 
     if (dto.director) {
-      const responseFromPerson: number[] = await lastValueFrom(
-        this.personsClient.send(
-          { cmd: 'getMoviesByDirector' },
-          { personId: dto.director },
-        ),
+      const responseFromPerson: number[] = await this.getMoviesByPersonsMS(
+        dto,
+        'Director',
       );
-
       if (!responseFromPerson.length) {
         return { result: null, amount: 0 };
       }
@@ -64,12 +88,7 @@ export class MoviesService {
     }
 
     if (dto.actor) {
-      const responseFromPerson = await lastValueFrom(
-        this.personsClient.send(
-          { cmd: 'getMoviesByActor' },
-          { personId: dto.actor },
-        ),
-      );
+      const responseFromPerson = await this.getMoviesByPersonsMS(dto, 'Actor');
       if (!responseFromPerson.length) {
         return { result: null, amount: 0 };
       }
@@ -160,7 +179,7 @@ export class MoviesService {
     //формируем результирующий массив с учётом пагинации, но без жанров и персон
     if (amountOfMovies < pagination[1]) {
       pagination[1] = amountOfMovies;
-    } else if (amountOfMovies - pagination[0] * pagination[1] < 0) {
+    } else if (amountOfMovies - (pagination[0]-1) * pagination[1] < 0) {
       pagination[1] = amountOfMovies - pagination[0] * pagination[1];
     }
 
@@ -174,7 +193,7 @@ export class MoviesService {
 
     rawResult.forEach((movie) => {
       //это работает благодаря наличию конструктора класса
-      const tempMovie = new MiniMovieDto();
+      const tempMovie = new MiniMovieDto(null);
       for (const tempMovieKey in tempMovie) {
         tempMovie[tempMovieKey] = movie[tempMovieKey];
       }
@@ -183,18 +202,13 @@ export class MoviesService {
 
     // извлекаем ids результата для использования ниже в запросах к микросервисам
     const resultIds = result.map((movie) => movie.id);
+
     // запрашиваем жанры для обогащения нашей поисковой выдачи
     const genresMap: Map<number, GenresDto[]> = new Map(
-      await lastValueFrom(
-        this.genresClient.send(
-          { cmd: 'getGenresByMoviesIds' },
-          { movies: resultIds },
-        ),
-      ),
+      await this.getGenresByMoviesIds(resultIds),
     );
-
     // обогащаем результат жанрами и странами
-    // todo передалать страныт на получение массива от сервиса
+    // todo переделать страны на получение массива от сервиса
     for (const movie of result) {
       movie.genres = genresMap.get(movie.id);
       const countries = await this.countriesService.getCountriesByMovie({
@@ -206,13 +220,9 @@ export class MoviesService {
     return { result: result, amount: amountOfMovies };
   }
 
-  async createMovie(dto: FullMovieDto) {
-    console.log('Movies MS - Service - createMovie at', new Date());
-    const newMovie: Movie = { ...dto };
-
-    const movie = await this.moviesRepository.save(newMovie);
-
+  async createGenresPersonsForMovie(movie, dto) {
     const errors = [];
+
     await lastValueFrom(
       this.genresClient.send(
         { cmd: 'addGenresToMovie' },
@@ -237,6 +247,34 @@ export class MoviesService {
         },
       ),
     ).catch((e) => errors.push({ persons: e }));
+    return errors.length > 0 ? errors : null;
+  }
+  async createMovie(dto: FullMovieDto) {
+    console.log('Movies MS - Service - createMovie at', new Date());
+
+    if (!dto.nameRu || !dto.year || !dto.duration)
+      return {
+        movie: null,
+        errors: [
+          {
+            movies:
+              'Error: nameRu, year, duration must to contain correct values',
+          },
+        ],
+      };
+
+    const newMovie: Movie = { ...dto };
+
+    const movie = await this.moviesRepository.save(newMovie);
+
+    const errors = [];
+
+    const createGenresPersonsResult = await this.createGenresPersonsForMovie(
+      movie,
+      dto,
+    );
+    if (createGenresPersonsResult != null)
+      errors.push(...createGenresPersonsResult);
 
     await this.countriesService.addCountriesToMovie({
       movieId: movie.id,
@@ -305,6 +343,38 @@ export class MoviesService {
     return { movie: fullMovie, errors: errors };
   }
 
+  async deleteMovieFromMS(id: number) {
+    const errors = [];
+    await lastValueFrom(
+      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
+    ).catch((e) => errors.push({ genres: e }));
+    await lastValueFrom(
+      this.personsClient.send(
+        { cmd: 'deleteMovieFromPersons' },
+        { movieId: id },
+      ),
+    ).catch((e) => errors.push({ persons: e }));
+
+    await lastValueFrom(
+      this.commentsClient.send(
+        { cmd: 'deleteCommentsFromEssence' },
+        {
+          dto: { essenceTable: 'movies', essenceId: id },
+        },
+      ),
+    ).catch((e) => errors.push({ comments: e }));
+    /*  await lastValueFrom(
+   this.filesClient.send(
+     { cmd: 'deleteFiles' },
+     {
+       dto: { essenceTable: 'movies', essenceId: id },
+     },
+   ),
+ ).catch((e) => errors.push({ files: e }));*/ //todo включить когда будут файлы
+
+    return errors.length > 0 ? errors : null;
+  }
+
   async deleteMovie(id: number) {
     console.log('Movies MS - Service - deleteMovie at', new Date());
     const errors = [];
@@ -318,44 +388,52 @@ export class MoviesService {
           movies: e,
         }),
       );
-
     if (result.affected == 0) errors.push({ movies: 'Error' });
 
     if (errors.length) return { result: {}, errors: errors };
 
-    await lastValueFrom(
-      this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
-    ).catch((e) => errors.push({ genres: e }));
-
-    await lastValueFrom(
-      this.personsClient.send(
-        { cmd: 'deleteMovieFromPersons' },
-        { movieId: id },
-      ),
-    ).catch((e) => errors.push({ persons: e }));
-    await lastValueFrom(
-      this.commentsClient.send(
-        { cmd: 'deleteCommentsFromPersons' },
-        {
-          dto: { essenceTable: 'movies', essenceId: id },
-        },
-      ),
-    ).catch((e) => errors.push({ comments: e }));
-
-    /*  await lastValueFrom(
-      this.filesClient.send(
-        { cmd: 'deleteFiles' },
-        {
-          dto: { essenceTable: 'movies', essenceId: id },
-        },
-      ),
-    ).catch((e) => errors.push({ files: e }));*/ //todo включить когда будут файлы
+    const deleteFromMsResult = await this.deleteMovieFromMS(id);
+    if (deleteFromMsResult != null) errors.push(...deleteFromMsResult);
 
     return { result: result, errors: errors };
   }
 
+  async updateGenresOfMovie(movieId, updateMovieDto) {
+    const errors = [];
+    await lastValueFrom(
+      this.genresClient.send(
+        { cmd: 'addGenresToMovie' },
+        { movieId: movieId, genres: updateMovieDto.genres },
+      ),
+    ).catch((e) => errors.push({ genres: e }));
+    return errors.length > 0 ? errors : null;
+  }
+
+  async updatePersonsOfMovie(movieId, updateMovieDto) {
+    const errors = [];
+
+    await lastValueFrom(
+      this.personsClient.send(
+        { cmd: 'addPersonsToMovie' },
+        {
+          movieId: movieId,
+          director: updateMovieDto.director,
+          actors: updateMovieDto.actors,
+          producer: updateMovieDto.producer,
+          editor: updateMovieDto.editor,
+          operator: updateMovieDto.operator,
+          composer: updateMovieDto.composer,
+        },
+      ),
+    ).catch((e) => errors.push({ persons: e }));
+    return errors.length > 0 ? errors : null;
+  }
   async updateMovie(movieId: number, updateMovieDto: UpdateMovieDto) {
     console.log('Movies MS - Service - editMovie at', new Date());
+
+    if (!(await this.moviesRepository.findOne({ where: { id: movieId } })))
+      return 'Movie with this number not found';
+
     const errors = [];
 
     //подготовка информации для записи в базу фильмов
@@ -377,48 +455,26 @@ export class MoviesService {
       .createQueryBuilder()
       .update()
       .set(toMovieBaseUpdate);
-    await lastValueFrom(
-      this.genresClient.send(
-        { cmd: 'addGenresToMovie' },
-        { movieId: movieId, genres: updateMovieDto.genres },
-      ),
-    ).catch((e) => errors.push({ genres: e }));
+
+    const updateGenresOfMovieResult = await this.updateGenresOfMovie(
+      movieId,
+      updateMovieDto,
+    );
+    if (updateGenresOfMovieResult != null)
+      errors.push(...updateGenresOfMovieResult);
+
+    const updatePersonsOfMovieResult = await this.updatePersonsOfMovie(
+      movieId,
+      updateMovieDto,
+    );
+    if (updatePersonsOfMovieResult != null)
+      errors.push(...updatePersonsOfMovieResult);
 
     //todo скорее всего здесь надо сделать другой метод.. надо проверить
     await this.countriesService.addCountriesToMovie({
       movieId: movieId,
       countries: updateMovieDto.countries,
     });
-
-    const persons = await lastValueFrom(
-      this.personsClient.send(
-        { cmd: 'addPersonsToMovie' },
-        {
-          movieId: movieId,
-          director: updateMovieDto.director,
-          actors: updateMovieDto.actors,
-          producer: updateMovieDto.producer,
-          editor: updateMovieDto.editor,
-          operator: updateMovieDto.operator,
-          composer: updateMovieDto.composer,
-        },
-      ),
-    ).catch((e) => errors.push({ persons: e }));
-    /*
-        await lastValueFrom(
-          this.personsClient.send(
-            { cmd: 'editPersonsInMovie' },
-            {
-              id: movieId,
-              director: updateMovieDto.director,
-              actors: updateMovieDto.actors,
-              producer: updateMovieDto.producer,
-              cinematographer: updateMovieDto.cinematographer,
-              screenwriter: updateMovieDto.screenwriter,
-              composer: updateMovieDto.composer,
-            },
-          ),
-        ).catch((e) => errors.push({ persons: e }));*/
 
     edit.where('id=:id', { id: movieId });
     const result = await edit.execute().catch((e) =>

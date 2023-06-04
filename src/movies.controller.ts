@@ -40,7 +40,7 @@ export class MoviesController {
   @MessagePattern({ cmd: 'createMovie' })
   async createMovie(dto: {
     createMovieDto: FullMovieDto;
-  }): Promise<{ movie: Movie; errors: any }> {
+  }): Promise<{ movie: Movie|null; errors: any }> {
     console.log('Movies MS - Controller - createMovie at', new Date());
     return await this.moviesService.createMovie(dto.createMovieDto);
   }

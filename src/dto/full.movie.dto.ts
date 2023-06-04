@@ -2,13 +2,17 @@ import { PersonsDto } from './persons.dto';
 import { MiniMovieDto } from './mini-movie.dto';
 
 export class FullMovieDto {
-
+  constructor() {
+    this.nameRu='первый фильм'
+    this.year=1981
+    this.duration=100
+  }
   id: number;
   nameRu: string;
   nameEn: string;
   description: string;
-  countries: [];
-  genres: [];
+  countries: any[];
+  genres: any[];
   trailer: string;
   similarMovies: number[] | MiniMovieDto[];
   year: number;
@@ -19,7 +23,7 @@ export class FullMovieDto {
   duration: number;
   slogan: string;
   director: PersonsDto[];
-  actors: PersonsDto[];
+  actors: PersonsDto[] | number[];
   producer: PersonsDto[];
   editor: PersonsDto[];
   operator: PersonsDto[];

@@ -1,6 +1,8 @@
 export class PersonsDto {
+  personId: number;
   nameRu: string;
   nameEn: string;
-  role: string;
-  movies: number[];
+  photo: string;
+  description:string;
+  biography:string
 }
