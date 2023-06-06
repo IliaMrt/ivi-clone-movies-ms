@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 import { Movie } from './movies.entity';
 import { FullMovieDto } from './dto/full.movie.dto';
 import { ClientProxy } from '@nestjs/microservices';
@@ -10,8 +10,10 @@ import { MiniMovieDto } from './dto/mini-movie.dto';
 import { UpdateMovieDto } from './dto/update.movie.dto';
 import { CountriesService } from './countries/countries.service';
 import { GenresDto } from './dto/genres.dto';
-import { MovieDto } from './dto/movie.dto';
 import { FullMoviePersonsDto } from './dto/full.movie.persons.dto';
+import { CountryDto } from './countries/dto/country.dto';
+import { Country } from './countries/entity/country.entity';
+import { PersonsDto } from './dto/persons.dto';
 
 @Injectable()
 export class MoviesService {
@@ -26,11 +28,11 @@ export class MoviesService {
     private countriesService: CountriesService,
   ) {}
 
-  async getMoviesRepository() {
+  async getMoviesRepository(): Promise<Repository<Movie>> {
     return this.moviesRepository;
   }
 
-  async getMoviesByGenresMS(dto: MovieFilterDto): Promise<any[]> {
+  async getMoviesByGenresMS(dto: MovieFilterDto): Promise<number[]> {
     return await lastValueFrom(
       this.genresClient.send(
         { cmd: 'getMoviesByGenres' },
@@ -53,7 +55,7 @@ export class MoviesService {
 
   async getGenresByMoviesIds(
     resultIds: number[],
-  ) /*: Promise<[number, GenresDto[]]> */ {
+  ): Promise<[number, GenresDto[]][]> {
     return await lastValueFrom(
       this.genresClient.send(
         { cmd: 'getGenresByMoviesIds' },
@@ -211,10 +213,11 @@ export class MoviesService {
     // todo переделать страны на получение массива от сервиса
     for (const movie of result) {
       movie.genres = genresMap.get(movie.id);
-      const countries = await this.countriesService.getCountriesByMovie({
-        movieId: [movie.id],
-      });
-      movie.countries = countries[1];
+      const countries: [number, CountryDto[]][] =
+        await this.countriesService.getCountriesByMovie({
+          movieId: [movie.id],
+        });
+      movie.countries = countries[0][1];
     }
     /*
     const countries = await this.countriesService.getCountriesByMovie({
@@ -224,7 +227,10 @@ export class MoviesService {
     return { result: result, amount: amountOfMovies };
   }
 
-  async createGenresPersonsForMovie(movie, dto) {
+  async createGenresPersonsForMovie(
+    movie,
+    dto,
+  ): Promise<{ [key: string]: any }[] | null> {
     const errors = [];
 
     await lastValueFrom(
@@ -237,7 +243,7 @@ export class MoviesService {
       ),
     ).catch((e) => errors.push({ genres: e }));
 
-    const persons = await lastValueFrom(
+    await lastValueFrom(
       this.personsClient.send(
         { cmd: 'addPersonsToMovie' },
         {
@@ -251,9 +257,12 @@ export class MoviesService {
         },
       ),
     ).catch((e) => errors.push({ persons: e }));
+
     return errors.length > 0 ? errors : null;
   }
-  async createMovie(dto: FullMovieDto) {
+  async createMovie(
+    dto: FullMovieDto,
+  ): Promise<{ movie: Movie | null; errors: { [key: string]: any }[] | null }> {
     console.log('Movies MS - Service - createMovie at', new Date());
 
     if (!dto.nameRu || !dto.year || !dto.duration)
@@ -266,17 +275,13 @@ export class MoviesService {
           },
         ],
       };
-    const newMovie: Movie = { ...dto };
 
-    const movie = await this.moviesRepository.save(newMovie);
-    console.log(JSON.stringify(movie));
+    const movie: Movie = await this.moviesRepository.save(dto);
 
-    const errors = [];
+    const errors: { [key: string]: any }[] = [];
 
-    const createGenresPersonsResult = await this.createGenresPersonsForMovie(
-      movie,
-      dto,
-    );
+    const createGenresPersonsResult: { [key: string]: any }[] | null =
+      await this.createGenresPersonsForMovie(movie, dto);
 
     if (createGenresPersonsResult != null)
       errors.push(...createGenresPersonsResult);
@@ -289,9 +294,11 @@ export class MoviesService {
     return { movie: movie, errors: errors };
   }
 
-  async getMovieById(id: number): Promise<any> {
+  async getMovieById(
+    id: number,
+  ): Promise<{ movie: FullMovieDto | null; errors: { [key: string]: any }[] }> {
     console.log('Movies MS - Service - getMovieById at', new Date());
-    const errors = [];
+    const errors: { [key: string]: any }[] = [];
 
     /*    const movie = await this.moviesRepository
       .findOne({ where: { id: id } })
@@ -299,33 +306,34 @@ export class MoviesService {
         return e;
       });*/
 
-    const movie = await this.moviesRepository
+    const movie: Movie | null = await this.moviesRepository
       .createQueryBuilder()
       .where(`id=:id`, { id: id })
       .getOne();
 
     if (movie === null)
-      return { movie: {}, errors: [{ movie: 'Movie not found' }] };
+      return { movie: null, errors: [{ movie: 'Movie not found' }] };
 
-    const genres = await lastValueFrom(
+    const genres: GenresDto[] = await lastValueFrom(
       this.genresClient.send(
         { cmd: 'getGenresByMoviesIds' },
         { movies: [movie.id] },
       ),
     ).catch((e) => errors.push({ genres: e }));
 
-    const persons = await lastValueFrom(
+    const persons: { [key: string]: PersonsDto[] } = await lastValueFrom(
       this.personsClient.send({ cmd: 'getMoviePersons' }, movie.id),
     ).catch((e) => {
       errors.push({ persons: e });
     });
 
     //todo посмотреть на свежую голову, как оптимизировать этот участок
-    const countries = await this.countriesService.getCountriesByMovie({
-      movieId: [id],
-    });
+    const countries: [number, CountryDto[]][] =
+      await this.countriesService.getCountriesByMovie({
+        movieId: [id],
+      });
 
-    let fullMovie = Object.create(FullMovieDto);
+    let fullMovie: FullMovieDto = Object.create(FullMovieDto);
     Object.entries(movie).forEach((value) => {
       fullMovie[value[0]] = value[1];
     });
@@ -348,11 +356,14 @@ export class MoviesService {
     return { movie: fullMovie, errors: errors };
   }
 
-  async deleteMovieFromMS(id: number) {
-    const errors = [];
+  async deleteMovieFromMS(
+    id: number,
+  ): Promise<{ [key: string]: any }[] | null> {
+    const errors: { [key: string]: any }[] = [];
     await lastValueFrom(
       this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
     ).catch((e) => errors.push({ genres: e }));
+
     await lastValueFrom(
       this.personsClient.send(
         { cmd: 'deleteMovieFromPersons' },
@@ -380,10 +391,13 @@ export class MoviesService {
     return errors.length > 0 ? errors : null;
   }
 
-  async deleteMovie(id: number) {
+  async deleteMovie(id: number): Promise<{
+    result: DeleteResult | null;
+    errors: { [key: string]: string }[];
+  }> {
     console.log('Movies MS - Service - deleteMovie at', new Date());
-    const errors = [];
-    const result: any = await this.moviesRepository
+    const errors: { [key: string]: string }[] = [];
+    const result: DeleteResult = <DeleteResult>await this.moviesRepository
       .createQueryBuilder()
       .delete()
       .where('id=:id', { id: id })
@@ -393,18 +407,23 @@ export class MoviesService {
           movies: e,
         }),
       );
-    if (result.affected == 0) errors.push({ movies: 'Error' });
 
-    if (errors.length) return { result: {}, errors: errors };
+    if (result.affected == 0) errors.push({ movies: 'Error file deleting' });
 
-    const deleteFromMsResult = await this.deleteMovieFromMS(id);
+    if (errors.length) return { result: null, errors: errors };
+
+    const deleteFromMsResult: { [key: string]: any }[] | null =
+      await this.deleteMovieFromMS(id);
     if (deleteFromMsResult != null) errors.push(...deleteFromMsResult);
 
     return { result: result, errors: errors };
   }
 
-  async updateGenresOfMovie(movieId, updateMovieDto) {
-    const errors = [];
+  async updateGenresOfMovie(
+    movieId,
+    updateMovieDto,
+  ): Promise<{ [key: string]: any }[] | null> {
+    const errors: { [key: string]: any }[] = [];
     await lastValueFrom(
       this.genresClient.send(
         { cmd: 'addGenresToMovie' },

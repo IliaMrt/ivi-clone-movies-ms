@@ -63,7 +63,7 @@ export class CountriesService {
   async addCountriesToMovie(addCountriesToMovieDto: AddCountryToMovieDto) {
     console.log('Countries MS - Service - addCountriesToMovie at', new Date());
     //Create movie if not exists
- /*   if (
+    /*   if (
       !(await this.movieRepository.findOneBy({
         id: addCountriesToMovieDto.movieId,
       }))
@@ -84,7 +84,7 @@ export class CountriesService {
       const country = await this.countryRepository.findOneBy({
         shortName: countryShortName,
       });
-      movie.countries.push(country);// todo переделать из цикла в массив
+      movie.countries.push(country); // todo переделать из цикла в массив
     }
 
     return await this.movieRepository.save(movie);
@@ -118,13 +118,13 @@ export class CountriesService {
 
   async getCountriesByMovie(
     getCountryByMovieDto: CountryByMovieDto,
-  ): Promise<any> {
+  ): Promise<[number, CountryDto[]][]> {
     console.log(
       'Countries MS - Service - getCountriesByMoviesDto at',
       new Date(),
     );
 
-    const result = [];
+    const result: [number, CountryDto[]][] = [];
     for (const id of getCountryByMovieDto.movieId) {
       const fullArray = await this.countryRepository.find({
         select: {},
@@ -135,7 +135,7 @@ export class CountriesService {
         },
       });
 
-      result.push(id, fullArray);
+      result.push([id, fullArray]);
     }
 
     return result;

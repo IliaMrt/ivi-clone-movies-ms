@@ -180,8 +180,8 @@ describe('movies Controller', () => {
 
     it('should delete not existed movie', async () => {
       const correctResult = {
-        errors: [{ movies: 'Error' }],
-        result: {},
+        errors: [{ movies: 'Error file deleting' }],
+        result: null,
       };
 
       jest
@@ -250,7 +250,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, [null]]];
         });
 
       const correctResult = {
@@ -353,7 +353,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [[2, { nameRu: 'комедия', nameEn: 'comedy' }]];
+          return [[2, [{ nameRu: 'комедия', nameEn: 'comedy' }]]];
         });
 
       const correctResult = {
@@ -362,10 +362,12 @@ describe('movies Controller', () => {
           new MiniMovieDto({
             countries: [],
             duration: '100',
-            genres: {
-              nameEn: 'comedy',
-              nameRu: 'комедия',
-            },
+            genres: [
+              {
+                nameEn: 'comedy',
+                nameRu: 'комедия',
+              },
+            ],
             id: 2,
             nameEn: null,
             nameRu: 'Фильм2',
@@ -387,7 +389,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [[3, { nameRu: 'комедия', nameEn: 'comedy' }]];
+          return [[3, [{ nameRu: 'комедия', nameEn: 'comedy' }]]];
         });
 
       const correctResult = {
@@ -396,10 +398,12 @@ describe('movies Controller', () => {
           new MiniMovieDto({
             countries: [],
             duration: '100',
-            genres: {
-              nameEn: 'comedy',
-              nameRu: 'комедия',
-            },
+            genres: [
+              {
+                nameEn: 'comedy',
+                nameRu: 'комедия',
+              },
+            ],
             id: 3,
             nameEn: null,
             nameRu: 'Фильм3',
@@ -421,7 +425,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
 
       const correctResult = {
@@ -464,7 +468,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
       jest
         .spyOn(moviesService, 'getMoviesByPersonsMS')
@@ -500,7 +504,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
 
       const correctResult = {
@@ -591,7 +595,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
 
       const correctResult = {
@@ -622,7 +626,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
 
       const correctResult = {
@@ -653,7 +657,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
       jest
         .spyOn(moviesService, 'getMoviesByPersonsMS')
@@ -691,7 +695,7 @@ describe('movies Controller', () => {
       jest
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
-          return [];
+          return [[null, []]];
         });
 
       const correctResult = {
@@ -726,8 +730,8 @@ describe('movies Controller', () => {
         .spyOn(moviesService, 'getGenresByMoviesIds')
         .mockImplementation(async () => {
           return [
-            [1, { nameRu: 'ужасы', nameEn: 'horror' }],
-            [2, { nameRu: 'комедия', nameEn: 'comedy' }],
+            [1, [{ nameRu: 'ужасы', nameEn: 'horror' }]],
+            [2, [{ nameRu: 'комедия', nameEn: 'comedy' }]],
           ];
         });
 
@@ -743,23 +747,10 @@ describe('movies Controller', () => {
   describe('create movie', () => {
     it('should create movie', async () => {
       const createMovieDto = new FullMovieDto();
+
       const expectedResult = {
         errors: [],
-        movie: {
-          ageRating: '18',
-          description: null,
-          duration: 100,
-          id: 1,
-          nameEn: null,
-          nameRu: 'первый фильм',
-          poster: null,
-          rating: '0',
-          ratingCount: '0',
-          similarMovies: null,
-          slogan: null,
-          trailer: null,
-          year: 1981,
-        },
+        movie: createMovieDto,
       };
       jest
         .spyOn(moviesService, 'createGenresPersonsForMovie')
