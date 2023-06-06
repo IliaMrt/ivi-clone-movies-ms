@@ -21,9 +21,6 @@ export class Movie {
   @Column({ nullable: true, type: 'text' })
   description: string;
 
-  /*  @Column({ type: 'simple-array' })
-    country: string[]; // CountryDto[];*/
-  // genres: genre[],
   @Column({ nullable: true, type: 'text' })
   trailer: string;
 
@@ -33,13 +30,13 @@ export class Movie {
   @Column({ type: 'numeric' })
   year: number;
 
-  @Column({ nullable: true, type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric', default: 0 })
   rating: number;
 
-  @Column({ nullable: true, type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric', default: 0 })
   ratingCount: number;
 
-  @Column({ nullable: true, type: 'numeric' })
+  @Column({ nullable: true, type: 'numeric', default: 18 })
   ageRating: number;
 
   @Column({ nullable: true, type: 'text' })

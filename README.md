@@ -1,30 +1,23 @@
+# Movies Microservice for [Ivi Clone backend](https://github.com/IliaMrt/ivi-clone-movies-ms)
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
+  <a target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This microservice is an API Gateway for [Ivi Clone backend application](https://github.com/IliaMrt/ivi-clone-movies-ms).\
+This is the only one microservice for ivi-clone project.\
+Here you can find an instructions for setting up and running microservice.
+
+If you found this repo before exploring the [main repo](https://github.com/srgklmv/ivi-clone-repo),
+I recommend you to explore [main repo](https://github.com/srgklmv/ivi-clone-repo/.gitignore) firstly for understanding how to run the application.
+
+## Requirements
+- RabbitMQ
+- Node.js
+- PostgreSQL
 
 ## Installation
 
@@ -32,18 +25,39 @@
 $ npm install
 ```
 
-## Running the app
+> Note: If you downloaded this repo from main repo script, there is no need to run install command.
 
+## Setting up & running service
+
+### General part (for either localhost & Docker launches)
+
+1. Set up **.dev.env** file for localhost.
+   Choose port as you need to access the application. Then change _API_URL_ & _CLIENT_URL_.
+   _API_URL_ is a http link to access Gateway, and _CLIENT_URL_ is for client application.
+   This links provides correct OAuth work.\
+   Set up JWT secret key. It must be same as in Auth Service.\
+   If using Docker, change **.dev.env**. Do not change port. Instead of it, change accessible port via Docker.\
+   _API_URL_ & _CLIENT_URL_ also must be changed.
+2. For loading databases with parsed existing movies you need to create new folder named
+   '**movies**', so you will have path to it as:
+   '**/ivi-clone-api-gateway/static/movies/**'. Now you need to download [this](https://github.com/JcJet/kinopoisk_nodejs/blob/557726d73af7dd81b79b7630816cffb5bdb0a3db/movies_json.zip) archive
+   and extract all .json files into created folder. So now, when you start application, you will be able to run
+   '_/loadDatabases1337_' endpoint to load Genres, Movies & Persons databases with real movies & actors.
+   \
+
+Now you are able to start Gateway.
+
+>Note: You can access the list of all accessible endpoints using '**/api**' endpoint.
+
+### For localhost
 ```bash
-# development
-$ npm run start
-
 # watch mode
 $ npm run start:dev
-
-# production mode
-$ npm run start:prod
 ```
+
+### For Docker
+> There is no need to set up service for using in Docker. You can continue follow main repo instructions.
+
 
 ## Test
 
@@ -58,16 +72,5 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+## Author
+[Ilia Martens](https://github.com/IliaMrt/ivi-clone-movies-ms)

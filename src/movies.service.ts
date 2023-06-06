@@ -216,6 +216,10 @@ export class MoviesService {
       });
       movie.countries = countries[1];
     }
+    /*
+    const countries = await this.countriesService.getCountriesByMovie({
+      movieId: [resultIds],
+    });*/
 
     return { result: result, amount: amountOfMovies };
   }
@@ -228,7 +232,7 @@ export class MoviesService {
         { cmd: 'addGenresToMovie' },
         {
           movieId: movie.id,
-          genres: dto.genres,
+          genres: dto.genres || [],
         },
       ),
     ).catch((e) => errors.push({ genres: e }));
@@ -262,10 +266,10 @@ export class MoviesService {
           },
         ],
       };
-
     const newMovie: Movie = { ...dto };
 
     const movie = await this.moviesRepository.save(newMovie);
+    console.log(JSON.stringify(movie));
 
     const errors = [];
 
@@ -273,12 +277,13 @@ export class MoviesService {
       movie,
       dto,
     );
+
     if (createGenresPersonsResult != null)
       errors.push(...createGenresPersonsResult);
 
     await this.countriesService.addCountriesToMovie({
       movieId: movie.id,
-      countries: dto.countries,
+      countries: dto.countries || [],
     });
 
     return { movie: movie, errors: errors };
@@ -403,7 +408,7 @@ export class MoviesService {
     await lastValueFrom(
       this.genresClient.send(
         { cmd: 'addGenresToMovie' },
-        { movieId: movieId, genres: updateMovieDto.genres },
+        { movieId: movieId, genres: updateMovieDto.genres || [] },
       ),
     ).catch((e) => errors.push({ genres: e }));
     return errors.length > 0 ? errors : null;
@@ -473,7 +478,7 @@ export class MoviesService {
     //todo скорее всего здесь надо сделать другой метод.. надо проверить
     await this.countriesService.addCountriesToMovie({
       movieId: movieId,
-      countries: updateMovieDto.countries,
+      countries: updateMovieDto.countries || [],
     });
 
     edit.where('id=:id', { id: movieId });

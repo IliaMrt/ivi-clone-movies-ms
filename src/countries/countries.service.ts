@@ -17,7 +17,7 @@ export class CountriesService {
     @InjectRepository(Movie) private movieRepository: Repository<Movie>,
   ) {}
 
-  async createCountry(/*createCountryMessageDto: CountryDto*/) /*: Promise<Country>*/ {
+  async createCountry() {
     console.log('Countries MS - Service - createCountry at', new Date());
     for (const country of CountriesList) {
       await this.countryRepository.save(country);
@@ -62,27 +62,21 @@ export class CountriesService {
 
   async addCountriesToMovie(addCountriesToMovieDto: AddCountryToMovieDto) {
     console.log('Countries MS - Service - addCountriesToMovie at', new Date());
-    // this.createCountry();
     //Create movie if not exists
-    if (
+ /*   if (
       !(await this.movieRepository.findOneBy({
         id: addCountriesToMovieDto.movieId,
       }))
     ) {
-      // console.log(addCountriesToMovieDto);
       await this.movieRepository.save({
         id: addCountriesToMovieDto.movieId,
       });
-    } else {
-      //todo
-      // console.log('Film is already exist');
-    }
+    } */
 
     //Get movie
     const movie = await this.movieRepository.findOneBy({
       id: addCountriesToMovieDto.movieId,
     });
-    // console.log(`movie: ${JSON.stringify(movie)}`);
 
     //Adding countries to movie
     movie.countries = [];
@@ -90,9 +84,8 @@ export class CountriesService {
       const country = await this.countryRepository.findOneBy({
         shortName: countryShortName,
       });
-      movie.countries.push(country);
+      movie.countries.push(country);// todo переделать из цикла в массив
     }
-    // console.log(`movie with countries: ${JSON.stringify(movie)}`);
 
     return await this.movieRepository.save(movie);
   }
@@ -130,70 +123,21 @@ export class CountriesService {
       'Countries MS - Service - getCountriesByMoviesDto at',
       new Date(),
     );
-    // return await this.countryRepository.findBy({
-    //   movie: undefined, nameEn: undefined, nameRu: undefined, shortName: undefined,
-    /*   relations: {
-        movie: true,
-      },*/
-    // where: { movie: { id: ArrayOverlap(getCountryByMovieDto.movieId) } },
-    // id: Raw(``, {id: getCountryByMovieDto.movieId})
-    // });
-    // console.log(`ids: ${getCountryByMovieDto.movieId}`);
-    /* return await this.countryRepository
-      .createQueryBuilder('country')
-      .innerJoin('movie_country', 'movie', '"movie_id" IN (:...ids)', {
-        ids: getCountryByMovieDto.movieId,
-      })
-      .getMany();*/
+
     const result = [];
     for (const id of getCountryByMovieDto.movieId) {
       const fullArray = await this.countryRepository.find({
         select: {},
-        // relations: { movie: false },
         where: {
           movie: {
             id: id,
           },
         },
       });
-      /*const countries=fullArray.map((fullMovie) => {
-        console.log(`FullMovie: ${JSON.stringify(fullMovie)}`);
-        new Object({
-          nameEn: fullMovie.nameEn,
-          nameRu: fullMovie.nameRu,
-          shortName: fullMovie.shortName,
-        });
-      });
-     */
+
       result.push(id, fullArray);
     }
 
-    /*console.log(
-      '111 ' +
-        JSON.stringify(
-          await this.countryRepository.find({
-            relations: { movie: true },
-            where: {
-              movie: {
-                id: 10,
-              },
-            },
-          }),
-        ),
-    );*/
-
-    /*const b = await this.movieRepository.find({
-      relations: { countries: true },
-      where: {
-        countries: {
-          shortName: 'uz',
-        },
-      },
-    });*/
-    // console.log('-----------');
-    // console.log(`result: ${JSON.stringify(result)}`);
-    // console.log(a.map((l) => l.shortName));
-    // console.log(b.map((l) => l.id));
     return result;
   }
 
