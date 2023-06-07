@@ -371,14 +371,14 @@ export class MoviesService {
         },
       ),
     ).catch((e) => errors.push({ comments: e }));
-    await lastValueFrom(
+    /*   await lastValueFrom(
       this.filesClient.send(
         { cmd: 'deleteFiles' },
         {
           dto: { essenceTable: 'movies', essenceId: id },
         },
       ),
-    ).catch((e) => errors.push({ files: e }));
+    ).catch((e) => errors.push({ files: e }));*/
     return errors.length > 0 ? errors : null;
   }
 
