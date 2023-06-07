@@ -4,7 +4,6 @@ import {
   PrimaryGeneratedColumn,
   ManyToMany,
   JoinTable,
-  JoinColumn,
 } from 'typeorm';
 import { MiniMovieDto } from './dto/mini-movie.dto';
 import { Country } from './countries/entity/country.entity';

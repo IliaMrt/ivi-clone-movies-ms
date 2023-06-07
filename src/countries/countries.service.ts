@@ -22,13 +22,13 @@ export class CountriesService {
     for (const country of CountriesList) {
       await this.countryRepository.save(country);
     }
-    // console.log(`${counter} countries created`);
     return;
-    // return this.countryRepository.save(createCountryMessageDto);
   }
+
   async getCountriesRepository() {
     return this.countryRepository;
   }
+
   async getAllCountries(): Promise<Country[]> {
     console.log('Countries MS - Service - getAllCountries at', new Date());
     return this.countryRepository.find();

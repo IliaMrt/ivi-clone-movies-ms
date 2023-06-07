@@ -1,18 +1,8 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-  JoinTable,
-  ManyToMany,
-} from 'typeorm';
-// import { MiniMovieDto } from './dto/mini-movie.dto';
+import { Entity, Column, PrimaryColumn, JoinTable, ManyToMany } from 'typeorm';
 import { Movie } from '../../movies.entity';
 
 @Entity('country')
 export class Country {
-/*  @PrimaryGeneratedColumn('increment')
-  id: number;*/
-
   @Column({ type: 'varchar', length: 255 })
   'nameRu': string;
 
@@ -21,9 +11,6 @@ export class Country {
   @PrimaryColumn({ type: 'varchar', length: 255 })
   'shortName': string;
 
-  /* @ManyToMany(() => Movie, (movie) => movie.id, { onDelete: 'CASCADE' })
-  @JoinTable()
-  movies: Movie[];*/
   @ManyToMany(() => Movie, (movie) => movie.id)
   @JoinTable({
     name: 'movie_country',

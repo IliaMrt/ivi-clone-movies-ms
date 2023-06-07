@@ -3,9 +3,9 @@ import { MiniMovieDto } from './mini-movie.dto';
 
 export class FullMovieDto {
   constructor() {
-    this.nameRu='первый фильм'
-    this.year=1981
-    this.duration=100
+    this.nameRu = 'первый фильм';
+    this.year = 1981;
+    this.duration = 100;
   }
   id: number;
   nameRu: string;

@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { Movie } from './movies.entity';
 import { MoviesService } from './movies.service';
 import { MovieFilterDto } from './dto/movie-filter.dto';
@@ -12,41 +12,40 @@ export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
   @MessagePattern({ cmd: 'getMovies' })
-  async getMovies(dto: {
-    movieFilterDto: MovieFilterDto | null;
-  }): Promise<{ result: MiniMovieDto[]; amount: number }> {
+  async getMovies(
+    @Payload() dto: { movieFilterDto: MovieFilterDto | null },
+  ): Promise<{ result: MiniMovieDto[]; amount: number }> {
     console.log('Movies MS - Controller - getMovies at', new Date());
     return await this.moviesService.getMovies(dto.movieFilterDto);
   }
 
   @MessagePattern({ cmd: 'deleteMovie' })
-  async deleteMovie(movieId: { movieId: number }) {
+  async deleteMovie(@Payload() movieId: { movieId: number }) {
     console.log('Movies MS - Controller - deleteMovie at', new Date());
     return await this.moviesService.deleteMovie(movieId.movieId);
   }
 
   @MessagePattern({ cmd: 'updateMovie' })
-  async updateMovie(input: {
-    movieId: number;
-    updateMovieDto: UpdateMovieDto;
-  }) {
+  async updateMovie(
+    @Payload() input: { movieId: number; updateMovieDto: UpdateMovieDto },
+  ) {
     console.log('Movies MS - Controller - editMovie at', new Date());
     return await this.moviesService.updateMovie(
       input.movieId,
-      input.updateMovieDto, //todo
+      input.updateMovieDto,
     );
   }
 
   @MessagePattern({ cmd: 'createMovie' })
-  async createMovie(dto: {
-    createMovieDto: FullMovieDto;
-  }): Promise<{ movie: Movie|null; errors: any }> {
+  async createMovie(
+    @Payload() dto: { createMovieDto: FullMovieDto },
+  ): Promise<{ movie: Movie | null; errors: any }> {
     console.log('Movies MS - Controller - createMovie at', new Date());
     return await this.moviesService.createMovie(dto.createMovieDto);
   }
 
   @MessagePattern({ cmd: 'getMovieById' })
-  async getMovieById(movieId: { movieId: number }): Promise<any> {
+  async getMovieById(@Payload() movieId: { movieId: number }): Promise<any> {
     console.log('Movies MS - Controller - getMovieById at', new Date());
     return await this.moviesService.getMovieById(movieId.movieId);
   }
@@ -59,7 +58,7 @@ export class MoviesController {
 
   @MessagePattern({ cmd: 'fillCountries' })
   async fillCountries(): Promise<any> {
-    console.log('Movies MS - Controller - fillCOuntries at', new Date());
+    console.log('Movies MS - Controller - fillCountries at', new Date());
     return await this.moviesService.fillCountries();
   }
 }

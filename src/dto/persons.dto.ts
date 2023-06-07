@@ -3,6 +3,6 @@ export class PersonsDto {
   nameRu: string;
   nameEn: string;
   photo: string;
-  description:string;
-  biography:string
+  description: string;
+  biography: string;
 }

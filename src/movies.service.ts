@@ -12,7 +12,6 @@ import { CountriesService } from './countries/countries.service';
 import { GenresDto } from './dto/genres.dto';
 import { FullMoviePersonsDto } from './dto/full.movie.persons.dto';
 import { CountryDto } from './countries/dto/country.dto';
-import { Country } from './countries/entity/country.entity';
 import { PersonsDto } from './dto/persons.dto';
 
 @Injectable()
@@ -210,19 +209,17 @@ export class MoviesService {
       await this.getGenresByMoviesIds(resultIds),
     );
     // обогащаем результат жанрами и странами
-    // todo переделать страны на получение массива от сервиса
+
+    const countriesMap: Map<number, CountryDto[]> = new Map(
+      await this.countriesService.getCountriesByMovie({
+        movieId: resultIds,
+      }),
+    );
+
     for (const movie of result) {
       movie.genres = genresMap.get(movie.id);
-      const countries: [number, CountryDto[]][] =
-        await this.countriesService.getCountriesByMovie({
-          movieId: [movie.id],
-        });
-      movie.countries = countries[0][1];
+      movie.countries = countriesMap.get(movie.id);
     }
-    /*
-    const countries = await this.countriesService.getCountriesByMovie({
-      movieId: [resultIds],
-    });*/
 
     return { result: result, amount: amountOfMovies };
   }
@@ -299,7 +296,6 @@ export class MoviesService {
   ): Promise<{ movie: FullMovieDto | null; errors: { [key: string]: any }[] }> {
     console.log('Movies MS - Service - getMovieById at', new Date());
     const errors: { [key: string]: any }[] = [];
-
     /*    const movie = await this.moviesRepository
       .findOne({ where: { id: id } })
       .catch((e) => {
@@ -327,7 +323,6 @@ export class MoviesService {
       errors.push({ persons: e });
     });
 
-    //todo посмотреть на свежую голову, как оптимизировать этот участок
     const countries: [number, CountryDto[]][] =
       await this.countriesService.getCountriesByMovie({
         movieId: [id],
@@ -345,12 +340,11 @@ export class MoviesService {
       fullMovie.similarMovies = (await this.getMovies(tempFilter)).result;
     }
     // заполняем данными, полученными от микросервисов жанры/персоны и странами
-    //todo при пустых странах/жанрах - ошибка. но их не должно быть пустых. добавить проверку
     fullMovie = Object.assign(
       fullMovie,
       new FullMoviePersonsDto(persons),
       { genres: genres[0][1] },
-      { countries: countries[1] },
+      { countries: countries[0][1] },
     );
 
     return { movie: fullMovie, errors: errors };
@@ -363,14 +357,12 @@ export class MoviesService {
     await lastValueFrom(
       this.genresClient.send({ cmd: 'deleteMovieFromGenres' }, { movieId: id }),
     ).catch((e) => errors.push({ genres: e }));
-
     await lastValueFrom(
       this.personsClient.send(
         { cmd: 'deleteMovieFromPersons' },
         { movieId: id },
       ),
     ).catch((e) => errors.push({ persons: e }));
-
     await lastValueFrom(
       this.commentsClient.send(
         { cmd: 'deleteCommentsFromEssence' },
@@ -379,15 +371,14 @@ export class MoviesService {
         },
       ),
     ).catch((e) => errors.push({ comments: e }));
-    /*  await lastValueFrom(
-   this.filesClient.send(
-     { cmd: 'deleteFiles' },
-     {
-       dto: { essenceTable: 'movies', essenceId: id },
-     },
-   ),
- ).catch((e) => errors.push({ files: e }));*/ //todo включить когда будут файлы
-
+    await lastValueFrom(
+      this.filesClient.send(
+        { cmd: 'deleteFiles' },
+        {
+          dto: { essenceTable: 'movies', essenceId: id },
+        },
+      ),
+    ).catch((e) => errors.push({ files: e }));
     return errors.length > 0 ? errors : null;
   }
 
@@ -494,7 +485,6 @@ export class MoviesService {
     if (updatePersonsOfMovieResult != null)
       errors.push(...updatePersonsOfMovieResult);
 
-    //todo скорее всего здесь надо сделать другой метод.. надо проверить
     await this.countriesService.addCountriesToMovie({
       movieId: movieId,
       countries: updateMovieDto.countries || [],
